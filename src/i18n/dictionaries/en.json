@@ -1,0 +1,38 @@
+{
+  "app": {
+    "name": "Qari",
+    "tagline": "Your book, for your eyes only"
+  },
+  "meta": {
+    "title": "Qari — your book, for your eyes only",
+    "description": "Read the book you bought after signing in, chapter by chapter, with no files to download or forward."
+  },
+  "nav": {
+    "switchLanguage": "العربية",
+    "switchLanguageLabel": "Switch to Arabic"
+  },
+  "home": {
+    "title": "Your book, for your eyes only",
+    "lead": "Read the book you bought after signing in, chapter by chapter, with no files to download or forward.",
+    "signIn": "Sign in",
+    "comingSoon": "Coming soon",
+    "featuresTitle": "What you'll find in Qari",
+    "features": {
+      "login": {
+        "title": "No password to remember",
+        "body": "Enter your email and we send you a code to sign in with."
+      },
+      "resume": {
+        "title": "Pick up where you left off",
+        "body": "Your reading position, font size and night mode are saved."
+      },
+      "personal": {
+        "title": "Your copy, in your name",
+        "body": "Your name appears faintly on every page, because this copy is yours alone."
+      }
+    }
+  },
+  "footer": {
+    "rights": "Qari"
+  }
+}
