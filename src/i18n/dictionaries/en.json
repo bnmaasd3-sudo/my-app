@@ -38,7 +38,7 @@
     "lead": "Enter the email you bought the book with and we'll send you a sign-in code.",
     "emailLabel": "Email",
     "sendCode": "Send code",
-    "codeSent": "If this email has a Qari account, we've sent it a code. Check your inbox and spam folder.",
+    "codeSent": "If this email has a Qari account, we've sent it a message. Open the link in it, or type the code if there is one. Check your spam folder too.",
     "codeLabel": "Sign-in code",
     "verify": "Sign in",
     "changeEmail": "Use a different email",
@@ -47,7 +47,8 @@
       "invalidEmail": "Enter a valid email address.",
       "invalidCode": "That code is wrong or has expired. Ask for a new one.",
       "rateLimited": "Too many attempts in a short time. Wait a little and try again.",
-      "generic": "We couldn't complete that right now. Try again shortly."
+      "generic": "We couldn't complete that right now. Try again shortly.",
+      "link": "That sign-in link didn't work: it may have expired or been opened in a different browser from the one that asked for it. Ask for a new link and open it in the same browser."
     }
   },
   "library": {

@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { DEVICE_COOKIE } from "@/lib/device";
@@ -12,7 +12,7 @@ import {
   normalizeEmail,
 } from "@/lib/validation";
 
-export type LoginError = "invalidEmail" | "invalidCode" | "rateLimited" | "generic";
+export type LoginError = "invalidEmail" | "invalidCode" | "rateLimited" | "link" | "generic";
 
 export type LoginState = {
   step: "email" | "code";
@@ -32,6 +32,16 @@ const isRefusedEmail = (error: AuthError) => typeof error.status === "number" &&
 
 const safeLocale = (lang: string) => (hasLocale(lang) ? lang : "ar");
 
+// The site's public address: NEXT_PUBLIC_SITE_URL when set, else this request's host.
+async function siteOrigin() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
+  if (configured) return configured;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
 export async function login(
   lang: string,
   previous: LoginState,
@@ -47,7 +57,12 @@ export async function login(
 
   if (intent === "send") {
     // Invited emails get their account on first sign-in; see guard_new_user.
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    // The email carries a link back to /auth/callback (and a code when the
+    // project's email template includes {{ .Token }}).
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${await siteOrigin()}/${safeLocale(lang)}/auth/callback` },
+    });
     if (error && isRateLimited(error)) return { step: "email", email, error: "rateLimited" };
     if (error && !isRefusedEmail(error)) return { step: "email", email, error: "generic" };
     return { step: "code", email };
