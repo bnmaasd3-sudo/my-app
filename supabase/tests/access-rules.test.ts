@@ -1,0 +1,289 @@
+// Runs every migration against an in-memory Postgres (PGlite) with stand-ins
+// for Supabase's roles and auth.uid(), then checks who can read what.
+// These are the fixed access tests from CLAUDE.md: never skip or weaken them.
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { PGlite } from "@electric-sql/pglite";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+const MIGRATIONS = join(__dirname, "..", "migrations");
+
+const SUPABASE_STANDINS = `
+  create role anon nologin;
+  create role authenticated nologin;
+  create role service_role nologin bypassrls;
+  create schema auth;
+  create table auth.users (id uuid primary key, email text);
+  create function auth.uid() returns uuid language sql stable as $$
+    select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  $$;
+  grant usage on schema auth to anon, authenticated;
+  grant usage on schema public to anon, authenticated, service_role;
+  -- Supabase grants every new public table and function to these roles.
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+`;
+
+const INFJ_READER = "00000000-0000-4000-8000-000000000001";
+const ESFJ_READER = "00000000-0000-4000-8000-000000000002";
+const INACTIVE_READER = "00000000-0000-4000-8000-000000000003";
+const REFUNDED_READER = "00000000-0000-4000-8000-000000000004";
+
+const SEED = `
+  insert into auth.users (id, email) values
+    ('${INFJ_READER}', 'infj@example.com'),
+    ('${ESFJ_READER}', 'esfj@example.com'),
+    ('${INACTIVE_READER}', 'off@example.com'),
+    ('${REFUNDED_READER}', 'refund@example.com');
+  insert into public.readers (id, email, display_name, active) values
+    ('${INFJ_READER}', 'infj@example.com', 'Noura', true),
+    ('${ESFJ_READER}', 'esfj@example.com', null, true),
+    ('${INACTIVE_READER}', 'off@example.com', null, false),
+    ('${REFUNDED_READER}', 'refund@example.com', null, true);
+  insert into public.books (slug, title, lang) values
+    ('infj-t-h-reader', 'INFJ', 'ar'),
+    ('esfj-reader', 'ESFJ', 'ar');
+  insert into public.chapters (book_id, position, title, body)
+    select b.id, p.position, b.title || ' chapter ' || p.position, b.title || ' secret text ' || p.position
+    from public.books b cross join (values (1), (2), (3)) as p(position);
+  insert into public.entitlements (reader_id, book_id, active)
+    select r.id, b.id, r.id <> '${REFUNDED_READER}'
+    from public.readers r
+    join public.books b on b.slug = case when r.id = '${ESFJ_READER}' then 'esfj-reader' else 'infj-t-h-reader' end;
+`;
+
+const DEVICE_1 = "device-one-0000000001";
+const DEVICE_2 = "device-two-0000000002";
+const DEVICE_3 = "device-three-00000003";
+
+let db: PGlite;
+
+async function as<T>(role: "anon" | "authenticated", userId: string | null, query: string, params: unknown[] = []) {
+  await db.exec(`reset role`);
+  await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [userId ?? ""]);
+  await db.exec(`set role ${role}`);
+  try {
+    return (await db.query<T>(query, params)).rows;
+  } finally {
+    await db.exec(`reset role`);
+  }
+}
+
+const openChapter = (userId: string | null, slug: string, position: number, device = DEVICE_1) =>
+  as<{ data: { chapter: { body: string; title: string }; reader: { name: string; email: string }; scroll_ratio: number } }>(
+    "authenticated",
+    userId,
+    `select public.open_chapter($1, $2, $3) as data`,
+    [slug, position, device],
+  ).then((rows) => rows[0].data);
+
+beforeAll(async () => {
+  db = new PGlite();
+  await db.exec(SUPABASE_STANDINS);
+  for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()) {
+    await db.exec(readFileSync(join(MIGRATIONS, file), "utf8"));
+  }
+}, 30_000);
+
+beforeEach(async () => {
+  await db.exec(`reset role`);
+  await db.exec(`
+    truncate public.reading_log, public.reading_state, public.reader_prefs, public.devices,
+      public.entitlements, public.chapters, public.books, public.readers, auth.users cascade;
+  `);
+  await db.exec(SEED);
+});
+
+describe("open_chapter", () => {
+  it("gives a reader a chapter of their own book, with their name and email for the watermark", async () => {
+    const data = await openChapter(INFJ_READER, "infj-t-h-reader", 1);
+    expect(data.chapter.body).toBe("INFJ secret text 1");
+    expect(data.reader).toEqual({ name: "Noura", email: "infj@example.com" });
+  });
+
+  it("falls back to the email when the reader has no display name", async () => {
+    const data = await openChapter(ESFJ_READER, "esfj-reader", 1);
+    expect(data.reader.name).toBe("esfj@example.com");
+  });
+
+  it("refuses an INFJ reader who asks for an ESFJ chapter", async () => {
+    await expect(openChapter(INFJ_READER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("gives the same answer for a book that does not exist", async () => {
+    await expect(openChapter(INFJ_READER, "no-such-book", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("refuses a visitor who is not signed in", async () => {
+    await expect(
+      as("anon", null, `select public.open_chapter('infj-t-h-reader', 1, '${DEVICE_1}')`),
+    ).rejects.toThrow(/permission denied/);
+    await expect(openChapter(null, "infj-t-h-reader", 1)).rejects.toThrow("not_authenticated");
+  });
+
+  it("refuses a deactivated reader", async () => {
+    await expect(openChapter(INACTIVE_READER, "infj-t-h-reader", 1)).rejects.toThrow("reader_inactive");
+  });
+
+  it("refuses a reader whose entitlement was deactivated (refund)", async () => {
+    await expect(openChapter(REFUNDED_READER, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("refuses a chapter that does not exist", async () => {
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 99)).rejects.toThrow("chapter_not_found");
+  });
+
+  it("logs every read", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1);
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2);
+    const rows = await db.query<{ n: number }>(`select count(*)::int as n from public.reading_log`);
+    expect(rows.rows[0].n).toBe(2);
+  });
+});
+
+describe("device limit", () => {
+  it("allows two devices and refuses a third", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_1);
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_2);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_3)).rejects.toThrow("device_limit");
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_1)).resolves.toBeTruthy();
+  });
+
+  it("refuses a revoked device and frees its slot", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_1);
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_2);
+    await db.exec(`update public.devices set revoked = true where device_id = '${DEVICE_1}'`);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_1)).rejects.toThrow("device_revoked");
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_3)).resolves.toBeTruthy();
+  });
+
+  it("rejects a malformed device id", async () => {
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, "short")).rejects.toThrow("device_invalid");
+  });
+});
+
+describe("direct table access", () => {
+  it("never exposes chapter text to signed-in readers or visitors", async () => {
+    await expect(as("authenticated", INFJ_READER, `select body from public.chapters`)).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(as("anon", null, `select body from public.chapters`)).rejects.toThrow(/permission denied/);
+  });
+
+  it("never exposes the read log", async () => {
+    await expect(as("authenticated", INFJ_READER, `select * from public.reading_log`)).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("shows a reader only their own account and entitlements", async () => {
+    const readers = await as<{ email: string }>("authenticated", INFJ_READER, `select email from public.readers`);
+    expect(readers).toEqual([{ email: "infj@example.com" }]);
+    const entitlements = await as("authenticated", INFJ_READER, `select * from public.entitlements`);
+    expect(entitlements).toHaveLength(1);
+  });
+
+  it("shows visitors nothing", async () => {
+    expect(await as("anon", null, `select * from public.readers`)).toEqual([]);
+    expect(await as("anon", null, `select * from public.books`)).toEqual([]);
+  });
+
+  it("lets a reader save only their own preferences", async () => {
+    await as(
+      "authenticated",
+      INFJ_READER,
+      `insert into public.reader_prefs (reader_id, font_size, theme) values ($1, 'lg', 'dark')`,
+      [INFJ_READER],
+    );
+    await expect(
+      as("authenticated", INFJ_READER, `insert into public.reader_prefs (reader_id) values ($1)`, [ESFJ_READER]),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("does not let readers grant themselves a book", async () => {
+    const esfj = await db.query<{ id: string }>(`select id from public.books where slug = 'esfj-reader'`);
+    await expect(
+      as(
+        "authenticated",
+        INFJ_READER,
+        `insert into public.entitlements (reader_id, book_id) values ($1, $2)`,
+        [INFJ_READER, esfj.rows[0].id],
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as("authenticated", REFUNDED_READER, `update public.entitlements set active = true returning *`),
+    ).resolves.toEqual([]);
+  });
+
+  it("keeps the internal helpers private", async () => {
+    await expect(
+      as("authenticated", INFJ_READER, `select public.claim_device($1, $2)`, [INFJ_READER, DEVICE_1]),
+    ).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("library, contents and progress", () => {
+  it("lists only the reader's own books", async () => {
+    const [{ data }] = await as<{ data: { slug: string }[] }>(
+      "authenticated",
+      INFJ_READER,
+      `select public.my_library() as data`,
+    );
+    expect(data.map((b) => b.slug)).toEqual(["infj-t-h-reader"]);
+  });
+
+  it("gives chapter titles without chapter text", async () => {
+    const [{ data }] = await as<{ data: { chapters: object[] } }>(
+      "authenticated",
+      INFJ_READER,
+      `select public.book_toc('infj-t-h-reader') as data`,
+    );
+    expect(data.chapters).toEqual([
+      { position: 1, title: "INFJ chapter 1" },
+      { position: 2, title: "INFJ chapter 2" },
+      { position: 3, title: "INFJ chapter 3" },
+    ]);
+    await expect(
+      as("authenticated", INFJ_READER, `select public.book_toc('esfj-reader')`),
+    ).rejects.toThrow("not_entitled");
+  });
+
+  it("remembers the chapter and scroll position", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2);
+    await as("authenticated", INFJ_READER, `select public.save_progress('infj-t-h-reader', 2, 0.4, '${DEVICE_1}')`);
+
+    const [{ data }] = await as<{ data: { position: number } }>(
+      "authenticated",
+      INFJ_READER,
+      `select public.book_toc('infj-t-h-reader') as data`,
+    );
+    expect(data.position).toBe(2);
+
+    const reopened = await openChapter(INFJ_READER, "infj-t-h-reader", 2);
+    expect(reopened.scroll_ratio).toBeCloseTo(0.4);
+
+    const other = await openChapter(INFJ_READER, "infj-t-h-reader", 3);
+    expect(other.scroll_ratio).toBe(0);
+  });
+
+  it("does not save progress in someone else's book", async () => {
+    await expect(
+      as("authenticated", INFJ_READER, `select public.save_progress('esfj-reader', 1, 0.5, '${DEVICE_1}')`),
+    ).rejects.toThrow("not_entitled");
+  });
+
+  it("does not let a blocked third device move the saved position", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2, DEVICE_1);
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2, DEVICE_2);
+    await expect(
+      as("authenticated", INFJ_READER, `select public.save_progress('infj-t-h-reader', 3, 0.9, '${DEVICE_3}')`),
+    ).rejects.toThrow("device_limit");
+    const [{ data }] = await as<{ data: { position: number } }>(
+      "authenticated",
+      INFJ_READER,
+      `select public.book_toc('infj-t-h-reader') as data`,
+    );
+    expect(data.position).toBe(2);
+  });
+});

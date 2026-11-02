@@ -42,8 +42,13 @@
 
 ## الهيكل
 - `src/app/[lang]/`: الصفحات، وكلها تحت مقطع اللغة.
+- `src/app/[lang]/login`: الدخول بالبريد ورمز يصل إليه (Supabase Auth، بلا إنشاء حسابات جديدة من الصفحة).
+- `src/app/[lang]/library` و`src/app/[lang]/read/[book]/[chapter]`: المكتبة والفهرس وشاشة القراءة (العلامة المائية، حجم الخط، الوضع الليلي، حفظ الموضع).
 - `src/i18n/`: اللغات المدعومة، واختيار اللغة من المتصفح، والقواميس.
-- `src/proxy.ts`: يحوّل `/` إلى `/ar` أو `/en` حسب لغة المتصفح.
+- `src/lib/supabase/`: عميل Supabase للخادم. المتغيرات في `.env.example`.
+- `src/proxy.ts`: يحوّل `/` إلى `/ar` أو `/en`، ويجدّد جلسة الدخول، ويعطي كل متصفح معرّف جهاز (`qari_device`).
+- `supabase/migrations/`: الجداول وقواعد الوصول والدوال. `supabase/tests/`: اختبارات الصلاحيات الثابتة.
+- `scripts/import-book.mjs` و`scripts/add-reader.mjs`: إدخال كتاب، وإضافة قارئ يدويًا.
 - `src/app/manifest.ts` و`public/icons/`: ملف التطبيق القابل للتثبيت (PWA) وأيقوناته.
 - `.claude/skills/`: سكِلات المهام المتكررة (إدخال كتاب، شاشات القراءة، الصلاحيات، سلة، أندرويد، النشر).
 - `.claude/commands/`: الاختصارات (`/review-code` `/security` `/test` `/deploy` `/add-reader` `/add-book` `/apk` `/app-status` `/budget`).

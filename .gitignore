@@ -43,3 +43,6 @@ next-env.d.ts
 # android signing keys (never commit)
 *.keystore
 *.jks
+
+# allow the example env file
+!.env.example

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { hasLocale, locales } from "@/i18n/config";
+import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { SiteHeader } from "./site-header";
 
 const featureKeys = ["login", "resume", "personal"] as const;
 
@@ -9,23 +10,10 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
-  const otherLang = locales.find((l) => l !== lang)!;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-5">
-      <header className="flex items-center justify-between py-5">
-        <span className="font-heading text-2xl font-bold text-accent">
-          {dict.app.name}
-        </span>
-        <Link
-          href={`/${otherLang}`}
-          hrefLang={otherLang}
-          aria-label={dict.nav.switchLanguageLabel}
-          className="rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:bg-surface"
-        >
-          {dict.nav.switchLanguage}
-        </Link>
-      </header>
+      <SiteHeader lang={lang} dict={dict} />
 
       <main className="flex flex-1 flex-col justify-center gap-12 py-10">
         <section className="flex flex-col gap-5">
@@ -36,16 +24,12 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             {dict.home.lead}
           </p>
           <div>
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-3 rounded-full bg-accent px-6 py-3 font-heading text-accent-foreground opacity-60"
+            <Link
+              href={`/${lang}/login`}
+              className="inline-flex items-center rounded-full bg-accent px-6 py-3 font-heading text-accent-foreground"
             >
               {dict.home.signIn}
-              <span className="rounded-full bg-accent-foreground/20 px-2.5 py-0.5 text-xs">
-                {dict.home.comingSoon}
-              </span>
-            </button>
+            </Link>
           </div>
         </section>
 

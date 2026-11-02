@@ -19,13 +19,17 @@ description: صلاحيات «قارئ» — من يرى ماذا، وقواعد
 - مفتاح الخدمة (service role) يُستعمل في الخادم فقط، من متغير بيئة لا يبدأ بـ `NEXT_PUBLIC_`.
 - لا حذف: الحساب والربط يُعطَّلان (`active = false`) ولا يُحذفان.
 
-## المخطط المخطَّط له (المرجع النهائي: `supabase/migrations/`)
+## المخطط (المرجع: `supabase/migrations/`، والاختبارات: `supabase/tests/access-rules.test.ts`)
 - `readers`: `id` (= `auth.users.id`)، `email`، `display_name`، `active`، `created_at`
 - `entitlements`: `reader_id`، `book_id`، `active`، `source` (سلة / يدوي)، `created_at`
 - `devices`: `reader_id`، `device_id`، `last_seen`، `revoked`
 - `reading_log`: `reader_id`، `chapter_id`، `opened_at`، `device_id`
 
-## صيغة قاعدة الوصول للفصول
+## كيف يصل القارئ إلى الفصل
+لا قاعدة `select` على `chapters` أصلًا، والصلاحيات مسحوبة منها لـ `anon` و`authenticated`. القارئ يأخذ الفصل فقط عبر الدالة `public.open_chapter(slug, position, device_id)` (security definer)، وهي تتحقق من الحساب والربط والجهاز، وتسجّل القراءة، وتعيد اسم القارئ وبريده للعلامة المائية. الفهرس عبر `book_toc`، والمكتبة عبر `my_library`، وحفظ الموضع عبر `save_progress`.
+الاختبارات تشغّل ملفات الترحيل على Postgres في الذاكرة (PGlite) بأدوار تحاكي Supabase، فلا تحتاج اتصالًا.
+
+## صيغة بديلة (غير مستعملة الآن) لقاعدة وصول مباشرة
 ```sql
 alter table chapters enable row level security;
 
