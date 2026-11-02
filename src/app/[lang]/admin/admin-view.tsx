@@ -1,6 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { revokeDevice, setEntitlement, setReaderActive } from "./actions";
+import { revokeDevice, setEntitlement, setReaderActive, setSallaProduct } from "./actions";
 import { AddReaderForm } from "./add-reader-form";
 
 export type Dashboard = {
@@ -17,9 +17,23 @@ export type Dashboard = {
   reads: { email: string; book: string; chapter: string; opened_at: string }[];
 };
 
+export type SallaPanel = {
+  products: { sku: string; book: string; title: string }[];
+  events: {
+    received_at: string;
+    event: string;
+    order_id: string | null;
+    status: string | null;
+    email: string | null;
+    outcome: string;
+  }[];
+};
+
 const smallButton = "rounded-full border border-border px-3 py-1 text-xs hover:bg-background";
 
-export function AdminView({ data, lang, dict }: { data: Dashboard; lang: Locale; dict: Dictionary }) {
+type Props = { data: Dashboard; salla: SallaPanel; webhookUrl: string; lang: Locale; dict: Dictionary };
+
+export function AdminView({ data, salla, webhookUrl, lang, dict }: Props) {
   const { books, readers, reads } = data;
 
   const when = new Intl.DateTimeFormat(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB", {
@@ -113,6 +127,59 @@ export function AdminView({ data, lang, dict }: { data: Dashboard; lang: Locale;
                   </div>
                 ))}
               </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-xl font-semibold">{t.salla.title}</h2>
+        <p className="leading-relaxed text-muted">{t.salla.lead}</p>
+        <p className="text-sm">
+          {t.salla.webhook}{" "}
+          <code dir="ltr" className="break-all">
+            {webhookUrl}
+          </code>
+        </p>
+        <form action={setSallaProduct} className="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm">{t.salla.sku}</span>
+            <input name="sku" dir="ltr" required className="rounded-xl border border-border bg-background px-3 py-2.5" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm">{t.book}</span>
+            <select name="book" required className="rounded-xl border border-border bg-background px-3 py-2.5">
+              {books.map((book) => (
+                <option key={book.slug} value={book.slug}>
+                  {book.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button disabled={books.length === 0} className="rounded-full bg-accent px-5 py-2.5 font-heading text-accent-foreground disabled:opacity-60">
+            {t.salla.save}
+          </button>
+        </form>
+        <p className="text-sm text-muted">{t.salla.products}</p>
+        {salla.products.length === 0 && <p className="text-sm text-muted">{t.salla.noProducts}</p>}
+        <ul className="flex flex-wrap gap-2">
+          {salla.products.map((product) => (
+            <li key={product.sku} className="rounded-full border border-border px-3 py-1 text-sm">
+              <code dir="ltr">{product.sku}</code> → {product.title}
+            </li>
+          ))}
+        </ul>
+        <p className="text-sm text-muted">{t.salla.events}</p>
+        {salla.events.length === 0 && <p className="text-sm text-muted">{t.salla.noEvents}</p>}
+        <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface">
+          {salla.events.map((event, index) => (
+            <li key={index} className="flex flex-wrap justify-between gap-2 px-4 py-2 text-sm" dir="ltr">
+              <span>
+                {event.event} #{event.order_id ?? "-"} {event.status ?? ""}
+              </span>
+              <span>{event.email ?? "-"}</span>
+              <span className="font-medium">{event.outcome}</span>
+              <span className="text-muted">{when.format(new Date(event.received_at))}</span>
             </li>
           ))}
         </ul>

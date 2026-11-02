@@ -122,6 +122,17 @@
       "noBook": "Choose a book.",
       "noServiceKey": "The service key isn't set on the server (SUPABASE_SERVICE_ROLE_KEY), so accounts can't be created here yet.",
       "generic": "That didn't work. Try again."
+    },
+    "salla": {
+      "title": "Salla link",
+      "lead": "Link a Salla product SKU to a book. The book unlocks for the buyer after payment and locks again on cancellation or refund.",
+      "sku": "Salla product SKU",
+      "save": "Save link",
+      "products": "Linked products",
+      "noProducts": "No linked products yet.",
+      "events": "Latest Salla notifications",
+      "noEvents": "No notifications yet.",
+      "webhook": "Webhook URL for Salla:"
     }
   },
   "footer": {
