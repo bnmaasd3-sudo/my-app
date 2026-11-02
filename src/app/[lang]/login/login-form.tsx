@@ -7,6 +7,8 @@ import type { LoginState } from "../actions";
 type Props = {
   action: (state: LoginState, formData: FormData) => Promise<LoginState>;
   dict: Dictionary["login"];
+  /** Set when the reader came back from a sign-in link that failed. */
+  linkError?: boolean;
 };
 
 const inputClass =
@@ -14,8 +16,12 @@ const inputClass =
 const primaryClass =
   "rounded-full bg-accent px-6 py-3 font-heading text-accent-foreground disabled:opacity-60";
 
-export function LoginForm({ action, dict }: Props) {
-  const [state, formAction, pending] = useActionState(action, { step: "email", email: "" });
+export function LoginForm({ action, dict, linkError = false }: Props) {
+  const [state, formAction, pending] = useActionState(action, {
+    step: "email",
+    email: "",
+    error: linkError ? "link" : undefined,
+  });
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

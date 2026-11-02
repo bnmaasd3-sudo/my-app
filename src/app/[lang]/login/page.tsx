@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getDictionary } from "@/i18n/dictionaries";
+import { Suspense } from "react";
+import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { login } from "../actions";
 import { SiteHeader } from "../site-header";
@@ -10,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: dict.login.title };
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/[lang]/login">) {
   const lang = await currentLocale();
   const dict = await getDictionary(lang);
 
@@ -22,8 +23,23 @@ export default async function LoginPage() {
           <h1 className="font-heading text-3xl font-bold">{dict.login.title}</h1>
           <p className="leading-relaxed text-muted">{dict.login.lead}</p>
         </div>
-        <LoginForm action={login.bind(null, lang)} dict={dict.login} />
+        <Suspense fallback={<LoginForm action={login.bind(null, lang)} dict={dict.login} />}>
+          <LinkAwareForm searchParams={searchParams} lang={lang} dict={dict.login} />
+        </Suspense>
       </main>
     </div>
   );
+}
+
+async function LinkAwareForm({
+  searchParams,
+  lang,
+  dict,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  lang: string;
+  dict: Dictionary["login"];
+}) {
+  const { error } = await searchParams;
+  return <LoginForm action={login.bind(null, lang)} dict={dict} linkError={error === "link"} />;
 }
