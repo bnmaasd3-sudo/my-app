@@ -67,7 +67,15 @@ if (!values.yes) {
 }
 
 let userId = existingId;
-if (!userId) {
+if (userId) {
+  // Someone may have signed up with this email and a password first. Readers
+  // only use email codes, so replace any password with a random one.
+  const { error } = await supabase.auth.admin.updateUserById(userId, {
+    password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+    email_confirm: true,
+  });
+  if (error) throw error;
+} else {
   const { data, error } = await supabase.auth.admin.createUser({ email, email_confirm: true });
   if (error) throw error;
   userId = data.user.id;

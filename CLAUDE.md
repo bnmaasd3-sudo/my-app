@@ -48,7 +48,8 @@
 - `src/lib/supabase/`: عميل Supabase للخادم. المتغيرات في `.env.example`.
 - `src/proxy.ts`: يحوّل `/` إلى `/ar` أو `/en`، ويجدّد جلسة الدخول، ويعطي كل متصفح معرّف جهاز (`qari_device`).
 - `supabase/migrations/`: الجداول وقواعد الوصول والدوال. `supabase/tests/`: اختبارات الصلاحيات الثابتة.
-- `scripts/import-book.mjs` و`scripts/add-reader.mjs`: إدخال كتاب، وإضافة قارئ يدويًا.
+- `src/app/[lang]/admin`: لوحة المالك (إضافة قارئ وربطه بكتاب، إيقافه، فك الربط، إلغاء جهاز، آخر القراءات). لا يدخلها إلا من في جدول `admins`، والتحقق في القاعدة.
+- `scripts/import-book.mjs` و`scripts/add-reader.mjs` و`scripts/add-admin.mjs`: إدخال كتاب، وإضافة قارئ يدويًا، وتعيين المالك أول مرة.
 - `src/app/manifest.ts` و`public/icons/`: ملف التطبيق القابل للتثبيت (PWA) وأيقوناته.
 - `.claude/skills/`: سكِلات المهام المتكررة (إدخال كتاب، شاشات القراءة، الصلاحيات، سلة، أندرويد، النشر).
 - `.claude/commands/`: الاختصارات (`/review-code` `/security` `/test` `/deploy` `/add-reader` `/add-book` `/apk` `/app-status` `/budget`).

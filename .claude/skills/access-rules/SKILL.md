@@ -24,6 +24,12 @@ description: صلاحيات «قارئ» — من يرى ماذا، وقواعد
 - `entitlements`: `reader_id`، `book_id`، `active`، `source` (سلة / يدوي)، `created_at`
 - `devices`: `reader_id`، `device_id`، `last_seen`، `revoked`
 - `reading_log`: `reader_id`، `chapter_id`، `opened_at`، `device_id`
+- `admins`: `user_id`. المالك يدير القراء عبر دوال `admin_*` (كل منها يبدأ بـ `assert_admin()`)، ولا قراءة مباشرة لهذا الجدول.
+
+## الحسابات
+- لا يُنشأ حساب دخول من صفحة الدخول (`shouldCreateUser: false`). الحسابات تُنشأ من لوحة المالك أو `scripts/add-reader.mjs` بمفتاح الخدمة.
+- عند ربط حساب كان موجودًا قبلًا، تُستبدل كلمة مروره بأخرى عشوائية، حتى لا يستفيد من سجّل ببريد مشترٍ وكلمة مرور قبله.
+- إعداد إلزامي في Supabase: Authentication ← Sign In / Providers ← إيقاف «Allow new users to sign up».
 
 ## كيف يصل القارئ إلى الفصل
 لا قاعدة `select` على `chapters` أصلًا، والصلاحيات مسحوبة منها لـ `anon` و`authenticated`. القارئ يأخذ الفصل فقط عبر الدالة `public.open_chapter(slug, position, device_id)` (security definer)، وهي تتحقق من الحساب والربط والجهاز، وتسجّل القراءة، وتعيد اسم القارئ وبريده للعلامة المائية. الفهرس عبر `book_toc`، والمكتبة عبر `my_library`، وحفظ الموضع عبر `save_progress`.

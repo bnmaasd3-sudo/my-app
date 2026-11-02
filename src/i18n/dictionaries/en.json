@@ -87,6 +87,43 @@
   "common": {
     "loading": "Loading…"
   },
+  "admin": {
+    "title": "Owner panel",
+    "open": "Owner panel",
+    "addReader": "Add a reader",
+    "email": "Email",
+    "name": "Name (shown in the watermark)",
+    "book": "Book",
+    "add": "Add and link",
+    "adding": "One moment…",
+    "added": "Reader added and linked to the book. They sign in with their email and a code.",
+    "noBooks": "There are no books yet. Import the book first.",
+    "books": "Books",
+    "chaptersCount": "Chapters: {n}",
+    "readersCount": "Readers: {n}",
+    "readers": "Readers",
+    "noReaders": "No readers yet.",
+    "active": "Active",
+    "suspended": "Suspended",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "link": "Link to book",
+    "unlink": "Unlink",
+    "fromSalla": "from Salla",
+    "devices": "Devices",
+    "noDevices": "Hasn't opened a chapter yet.",
+    "lastRead": "Last read:",
+    "removeDevice": "Remove device",
+    "removed": "Removed",
+    "recentReads": "Recent reads",
+    "noReads": "No reads yet.",
+    "errors": {
+      "invalidEmail": "Enter a valid email.",
+      "noBook": "Choose a book.",
+      "noServiceKey": "The service key isn't set on the server (SUPABASE_SERVICE_ROLE_KEY), so accounts can't be created here yet.",
+      "generic": "That didn't work. Try again."
+    }
+  },
   "footer": {
     "rights": "Qari"
   }

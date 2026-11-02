@@ -29,13 +29,18 @@ const INFJ_READER = "00000000-0000-4000-8000-000000000001";
 const ESFJ_READER = "00000000-0000-4000-8000-000000000002";
 const INACTIVE_READER = "00000000-0000-4000-8000-000000000003";
 const REFUNDED_READER = "00000000-0000-4000-8000-000000000004";
+const OWNER = "00000000-0000-4000-8000-0000000000aa";
+const NEW_USER = "00000000-0000-4000-8000-0000000000bb";
 
 const SEED = `
   insert into auth.users (id, email) values
     ('${INFJ_READER}', 'infj@example.com'),
     ('${ESFJ_READER}', 'esfj@example.com'),
     ('${INACTIVE_READER}', 'off@example.com'),
-    ('${REFUNDED_READER}', 'refund@example.com');
+    ('${REFUNDED_READER}', 'refund@example.com'),
+    ('${OWNER}', 'owner@example.com'),
+    ('${NEW_USER}', 'new@example.com');
+  insert into public.admins (user_id) values ('${OWNER}');
   insert into public.readers (id, email, display_name, active) values
     ('${INFJ_READER}', 'infj@example.com', 'Noura', true),
     ('${ESFJ_READER}', 'esfj@example.com', null, true),
@@ -90,7 +95,8 @@ beforeEach(async () => {
   await db.exec(`reset role`);
   await db.exec(`
     truncate public.reading_log, public.reading_state, public.reader_prefs, public.devices,
-      public.entitlements, public.chapters, public.books, public.readers, auth.users cascade;
+      public.entitlements, public.chapters, public.books, public.readers, public.admins,
+      auth.users cascade;
   `);
   await db.exec(SEED);
 });
@@ -285,5 +291,81 @@ describe("library, contents and progress", () => {
       `select public.book_toc('infj-t-h-reader') as data`,
     );
     expect(data.position).toBe(2);
+  });
+});
+
+describe("owner panel", () => {
+  const dashboard = (userId: string) =>
+    as<{ data: { readers: { email: string; books: { slug: string; active: boolean }[] }[] } }>(
+      "authenticated",
+      userId,
+      `select public.admin_dashboard() as data`,
+    ).then((rows) => rows[0].data);
+
+  it("knows who the owner is", async () => {
+    expect(await as("authenticated", OWNER, `select public.is_admin() as v`)).toEqual([{ v: true }]);
+    expect(await as("authenticated", INFJ_READER, `select public.is_admin() as v`)).toEqual([{ v: false }]);
+    await expect(as("anon", null, `select public.is_admin()`)).rejects.toThrow(/permission denied/);
+  });
+
+  it("refuses every owner action from a reader", async () => {
+    for (const call of [
+      `select public.admin_dashboard()`,
+      `select public.admin_set_reader_active('${ESFJ_READER}', false)`,
+      `select public.admin_set_entitlement('${INFJ_READER}', 'esfj-reader', true)`,
+      `select public.admin_revoke_device('${ESFJ_READER}', '${DEVICE_1}')`,
+      `select public.admin_register_reader('${NEW_USER}', 'new@example.com', null)`,
+    ]) {
+      await expect(as("authenticated", INFJ_READER, call)).rejects.toThrow("not_admin");
+    }
+    await expect(as("authenticated", INFJ_READER, `select * from public.admins`)).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("lets the owner add a reader and give them exactly one book", async () => {
+    await as("authenticated", OWNER, `select public.admin_register_reader('${NEW_USER}', 'New@Example.com', 'Sara')`);
+    await as("authenticated", OWNER, `select public.admin_set_entitlement('${NEW_USER}', 'infj-t-h-reader', true)`);
+
+    const data = await openChapter(NEW_USER, "infj-t-h-reader", 1);
+    expect(data.reader).toEqual({ name: "Sara", email: "new@example.com" });
+    await expect(openChapter(NEW_USER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("refuses to pair an account with someone else's email", async () => {
+    await expect(
+      as("authenticated", OWNER, `select public.admin_register_reader('${NEW_USER}', 'infj@example.com', null)`),
+    ).rejects.toThrow("account_mismatch");
+  });
+
+  it("suspends a reader and unlinks a book without deleting anything", async () => {
+    await as("authenticated", OWNER, `select public.admin_set_reader_active('${INFJ_READER}', false)`);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).rejects.toThrow("reader_inactive");
+    await as("authenticated", OWNER, `select public.admin_set_reader_active('${INFJ_READER}', true)`);
+
+    await as("authenticated", OWNER, `select public.admin_set_entitlement('${INFJ_READER}', 'infj-t-h-reader', false)`);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
+
+    const readers = await dashboard(OWNER);
+    const infj = readers.readers.find((r) => r.email === "infj@example.com");
+    expect(infj?.books).toEqual([expect.objectContaining({ slug: "infj-t-h-reader", active: false })]);
+  });
+
+  it("frees a device slot when the owner removes a device", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_1);
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_2);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_3)).rejects.toThrow("device_limit");
+    await as("authenticated", OWNER, `select public.admin_revoke_device('${INFJ_READER}', '${DEVICE_1}')`);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1, DEVICE_3)).resolves.toBeTruthy();
+  });
+
+  it("shows who read what", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2);
+    const [{ data }] = await as<{ data: { reads: { email: string; chapter: string }[] } }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_dashboard() as data`,
+    );
+    expect(data.reads[0]).toEqual(expect.objectContaining({ email: "infj@example.com", chapter: "INFJ chapter 2" }));
   });
 });

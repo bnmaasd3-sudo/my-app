@@ -40,39 +40,63 @@ export default async function LibraryPage() {
 
 async function Books({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("my_library");
+  const [{ data, error }, { data: isAdmin }] = await Promise.all([
+    supabase.rpc("my_library"),
+    supabase.rpc("is_admin"),
+  ]);
+
+  const ownerLink = isAdmin === true && (
+    <Link
+      href={`/${lang}/admin`}
+      className="self-start rounded-full border border-accent px-5 py-2.5 font-heading text-accent"
+    >
+      {dict.admin.open}
+    </Link>
+  );
+  // The owner may not be a reader themselves.
+  if (error && ownerLink) return ownerLink;
   if (error) return <ReaderError kind={readerErrorKind(error)} lang={lang} dict={dict} />;
 
   const books = (data ?? []) as LibraryBook[];
-  if (books.length === 0) return <p className="leading-relaxed text-muted">{dict.library.empty}</p>;
+  if (books.length === 0) {
+    return (
+      <>
+        {ownerLink}
+        <p className="leading-relaxed text-muted">{dict.library.empty}</p>
+      </>
+    );
+  }
 
   return (
-    <ul className="grid gap-4">
-      {books.map((book) => (
-        <li
-          key={book.slug}
-          className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5"
-        >
-          <h2 lang={book.lang} className="font-heading text-xl font-semibold">
-            {book.title}
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              prefetch={false}
-              href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
-              className="rounded-full bg-accent px-5 py-2.5 font-heading text-accent-foreground"
-            >
-              {book.position ? dict.library.continue : dict.library.start}
-            </Link>
-            <Link
-              href={`/${lang}/read/${book.slug}`}
-              className="rounded-full border border-border px-5 py-2.5"
-            >
-              {dict.library.contents}
-            </Link>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <>
+      {ownerLink}
+      <ul className="grid gap-4">
+        {books.map((book) => (
+          <li
+            key={book.slug}
+            className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5"
+          >
+            <h2 lang={book.lang} className="font-heading text-xl font-semibold">
+              {book.title}
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                prefetch={false}
+                href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
+                className="rounded-full bg-accent px-5 py-2.5 font-heading text-accent-foreground"
+              >
+                {book.position ? dict.library.continue : dict.library.start}
+              </Link>
+              <Link
+                href={`/${lang}/read/${book.slug}`}
+                className="rounded-full border border-border px-5 py-2.5"
+              >
+                {dict.library.contents}
+              </Link>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
