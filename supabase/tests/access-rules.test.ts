@@ -13,7 +13,13 @@ const SUPABASE_STANDINS = `
   create role authenticated nologin;
   create role service_role nologin bypassrls;
   create schema auth;
-  create table auth.users (id uuid primary key, email text);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, encrypted_password text default '');
+  create schema storage;
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+  alter table storage.objects enable row level security;
+  create function storage.foldername(name text) returns text[] language sql immutable as $$
+    select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
+  $$;
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
   $$;
@@ -101,10 +107,12 @@ beforeEach(async () => {
   await db.exec(`
     truncate public.reading_log, public.reading_state, public.reader_prefs, public.devices,
       public.salla_events, public.salla_orders, public.salla_products,
-      public.entitlements, public.chapters, public.books, public.readers, public.admins,
+      public.pending_entitlements, public.invites, public.entitlements, public.chapters, public.books, public.readers, public.admins,
       auth.users cascade;
   `);
+  await db.exec(`set session_replication_role = replica`);
   await db.exec(SEED);
+  await db.exec(`set session_replication_role = origin`);
 });
 
 describe("open_chapter", () => {
@@ -320,7 +328,7 @@ describe("owner panel", () => {
       `select public.admin_set_reader_active('${ESFJ_READER}', false)`,
       `select public.admin_set_entitlement('${INFJ_READER}', 'esfj-reader', true)`,
       `select public.admin_revoke_device('${ESFJ_READER}', '${DEVICE_1}')`,
-      `select public.admin_register_reader('${NEW_USER}', 'new@example.com', null)`,
+      `select public.admin_add_reader('new@example.com', null, 'infj-t-h-reader')`,
     ]) {
       await expect(as("authenticated", INFJ_READER, call)).rejects.toThrow("not_admin");
     }
@@ -329,19 +337,60 @@ describe("owner panel", () => {
     );
   });
 
-  it("lets the owner add a reader and give them exactly one book", async () => {
-    await as("authenticated", OWNER, `select public.admin_register_reader('${NEW_USER}', 'New@Example.com', 'Sara')`);
-    await as("authenticated", OWNER, `select public.admin_set_entitlement('${NEW_USER}', 'infj-t-h-reader', true)`);
-
+  it("lets the owner add a reader who already has an account, with exactly one book", async () => {
+    const [{ v }] = await as<{ v: string }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_add_reader('New@Example.com', 'Sara', 'infj-t-h-reader') as v`,
+    );
+    expect(v).toBe("linked");
     const data = await openChapter(NEW_USER, "infj-t-h-reader", 1);
     expect(data.reader).toEqual({ name: "Sara", email: "new@example.com" });
     await expect(openChapter(NEW_USER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
   });
 
-  it("refuses to pair an account with someone else's email", async () => {
+  it("invites a new email and opens the book at its first sign-in, without the password", async () => {
+    const [{ v }] = await as<{ v: string }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_add_reader('later@example.com', 'Laila', 'infj-t-h-reader') as v`,
+    );
+    expect(v).toBe("invited");
+
+    // What Supabase Auth does when the invited reader signs in for the first time.
+    const LATER = "00000000-0000-4000-8000-0000000000cc";
+    await db.query(`insert into auth.users (id, email, encrypted_password) values ($1, 'later@example.com', 'x')`, [LATER]);
+    const user = await db.query<{ p: string }>(`select encrypted_password as p from auth.users where id = $1`, [LATER]);
+    expect(user.rows[0].p).toBe("");
+
+    const data = await openChapter(LATER, "infj-t-h-reader", 1);
+    expect(data.reader.name).toBe("Laila");
+    await expect(openChapter(LATER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("refuses a sign-up from an email nobody invited", async () => {
     await expect(
-      as("authenticated", OWNER, `select public.admin_register_reader('${NEW_USER}', 'infj@example.com', null)`),
-    ).rejects.toThrow("account_mismatch");
+      db.query(`insert into auth.users (email) values ('stranger@example.com')`),
+    ).rejects.toThrow("signup_not_allowed");
+  });
+
+  it("makes an invited owner an admin, not a reader", async () => {
+    await db.query(`insert into public.invites (email, is_admin) values ('boss@example.com', true)`);
+    const BOSS = "00000000-0000-4000-8000-0000000000dd";
+    await db.query(`insert into auth.users (id, email) values ($1, 'boss@example.com')`, [BOSS]);
+    expect(await as("authenticated", BOSS, `select public.is_admin() as v`)).toEqual([{ v: true }]);
+    await expect(openChapter(BOSS, "infj-t-h-reader", 1)).rejects.toThrow("reader_inactive");
+  });
+
+  it("lets readers fetch figures only for books they own", async () => {
+    const check = (userId: string | null, slug: string) =>
+      as<{ v: boolean }>("authenticated", userId, `select public.can_read_book_files($1) as v`, [slug]).then(
+        (rows) => rows[0].v,
+      );
+    expect(await check(INFJ_READER, "infj-t-h-reader")).toBe(true);
+    expect(await check(INFJ_READER, "esfj-reader")).toBe(false);
+    expect(await check(REFUNDED_READER, "infj-t-h-reader")).toBe(false);
+    expect(await check(null, "infj-t-h-reader")).toBe(false);
   });
 
   it("suspends a reader and unlinks a book without deleting anything", async () => {
@@ -378,12 +427,12 @@ describe("owner panel", () => {
 
 describe("salla purchases", () => {
   const BUYER = NEW_USER;
-  const grant = (orderId: string, skus: string[], userId = BUYER, email = "new@example.com") =>
-    as<{ data: { books: string[]; unknown_skus: string[] } }>(
+  const grant = (orderId: string, skus: string[], email = "new@example.com") =>
+    as<{ data: { books: string[]; unknown_skus: string[]; pending: boolean } }>(
       "service_role",
       null,
-      `select public.salla_grant_order($1, $2, $3, 'Buyer', $4) as data`,
-      [orderId, userId, email, skus],
+      `select public.salla_grant_email($1, $2, 'Buyer', $3) as data`,
+      [orderId, email, skus],
     ).then((rows) => rows[0].data);
   const revoke = (orderId: string) =>
     as<{ n: number }>("service_role", null, `select public.salla_revoke_order($1) as n`, [orderId]).then(
@@ -396,7 +445,7 @@ describe("salla purchases", () => {
 
   it("unlocks the purchased book, and only that book", async () => {
     const result = await grant("1001", ["SKU-INFJ", "SKU-OTHER"]);
-    expect(result).toEqual({ books: ["infj-t-h-reader"], unknown_skus: ["SKU-OTHER"] });
+    expect(result).toEqual({ books: ["infj-t-h-reader"], unknown_skus: ["SKU-OTHER"], pending: false });
     await expect(openChapter(BUYER, "infj-t-h-reader", 1)).resolves.toBeTruthy();
     await expect(openChapter(BUYER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
   });
@@ -414,27 +463,39 @@ describe("salla purchases", () => {
     await expect(openChapter(BUYER, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
 
     // INFJ_READER's link was made by hand; an order for it must not remove it.
-    await grant("2002", ["SKU-INFJ"], INFJ_READER, "infj@example.com");
+    await grant("2002", ["SKU-INFJ"], "infj@example.com");
     expect(await revoke("2002")).toBe(0);
     await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).resolves.toBeTruthy();
   });
 
   it("does not reactivate a reader the owner suspended", async () => {
     await as("authenticated", OWNER, `select public.admin_set_reader_active('${INFJ_READER}', false)`);
-    await grant("3003", ["SKU-INFJ"], INFJ_READER, "infj@example.com");
+    await grant("3003", ["SKU-INFJ"], "infj@example.com");
     await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).rejects.toThrow("reader_inactive");
   });
 
-  it("refuses an account id that does not match the buyer's email", async () => {
-    await expect(grant("4004", ["SKU-INFJ"], BUYER, "infj@example.com")).rejects.toThrow("account_mismatch");
+  it("holds the book for a buyer without an account until their first sign-in", async () => {
+    const result = await grant("5005", ["SKU-INFJ"], "fresh@example.com");
+    expect(result.pending).toBe(true);
+    const FRESH = "00000000-0000-4000-8000-0000000000ee";
+    await db.query(`insert into auth.users (id, email) values ($1, 'fresh@example.com')`, [FRESH]);
+    await expect(openChapter(FRESH, "infj-t-h-reader", 1)).resolves.toBeTruthy();
+    expect(await revoke("5005")).toBe(1);
+    await expect(openChapter(FRESH, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("cancels a book still waiting for the first sign-in when the order is refunded", async () => {
+    await grant("6006", ["SKU-INFJ"], "gone@example.com");
+    expect(await revoke("6006")).toBe(1);
+    const GONE = "00000000-0000-4000-8000-0000000000ff";
+    await db.query(`insert into auth.users (id, email) values ($1, 'gone@example.com')`, [GONE]);
+    await expect(openChapter(GONE, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
   });
 
   it("cannot be called by readers or visitors", async () => {
     for (const role of ["authenticated", "anon"] as const) {
       await expect(
-        as(role, INFJ_READER, `select public.salla_grant_order('x', $1, 'infj@example.com', '', '{SKU-INFJ}')`, [
-          INFJ_READER,
-        ]),
+        as(role, INFJ_READER, `select public.salla_grant_email('x', 'infj@example.com', '', '{SKU-INFJ}')`),
       ).rejects.toThrow(/permission denied/);
       await expect(as(role, INFJ_READER, `select public.salla_revoke_order('x')`)).rejects.toThrow(
         /permission denied/,

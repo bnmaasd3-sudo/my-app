@@ -44,7 +44,8 @@ export function AddReaderForm({ books, dict }: Props) {
           {pending ? dict.adding : dict.add}
         </button>
         <p role="status" className="text-sm text-muted">
-          {state.status === "added" && dict.added}
+          {state.status === "linked" && dict.linked}
+          {state.status === "invited" && dict.invited}
           {state.status === "error" && state.error && dict.errors[state.error]}
           {books.length === 0 && dict.noBooks}
         </p>

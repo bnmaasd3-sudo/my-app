@@ -50,7 +50,6 @@ function serviceClient() {
 }
 
 vi.mock("@/lib/supabase/admin", () => ({ createServiceClient: () => serviceClient() }));
-vi.mock("@/lib/supabase/accounts", () => ({ findOrCreateAccount: async () => "user-1" }));
 
 const { POST } = await import("./route");
 
@@ -82,7 +81,7 @@ beforeEach(() => {
   fake.events = [];
   fake.rpcs = [];
   fake.rpcResult = {
-    salla_grant_order: { books: ["infj-t-h-reader"], unknown_skus: [] },
+    salla_grant_email: { books: ["infj-t-h-reader"], unknown_skus: [], pending: false },
     salla_revoke_order: 1,
   };
 });
@@ -100,8 +99,8 @@ describe("POST /api/salla/webhook", () => {
     expect(response.status).toBe(200);
     expect(fake.rpcs).toEqual([
       {
-        name: "salla_grant_order",
-        args: { p_order_id: "77", p_user_id: "user-1", p_email: "noura@example.com", p_name: "Noura", p_skus: ["SKU-INFJ"] },
+        name: "salla_grant_email",
+        args: { p_order_id: "77", p_email: "noura@example.com", p_name: "Noura", p_skus: ["SKU-INFJ"] },
       },
     ]);
     expect(fake.events[0].outcome).toBe("granted");

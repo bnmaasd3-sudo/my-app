@@ -1,32 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { toBlocks } from "./book-text";
+import { figureName, figurePaths } from "./book-text";
 import { readerErrorKind } from "./reader-errors";
 import { isValidCode, isValidEmail, normalizeCode, normalizeEmail } from "./validation";
 
-describe("toBlocks", () => {
-  it("splits paragraphs on blank lines and keeps line breaks inside them", () => {
-    expect(toBlocks("أول\nسطر\n\n\nثانٍ")).toEqual([
-      { kind: "paragraph", text: "أول\nسطر" },
-      { kind: "paragraph", text: "ثانٍ" },
+describe("figures", () => {
+  it("finds every figure a chapter refers to, once, under the book's folder", () => {
+    const body = "![](الأشكال/opening_00.jpg)\n\nنص ![الوظائف](الأشكال/fig01.png) و![](الأشكال/fig01.png)";
+    expect(figurePaths(body, "infj-t-h-reader")).toEqual([
+      "infj-t-h-reader/figures/opening_00.jpg",
+      "infj-t-h-reader/figures/fig01.png",
     ]);
   });
 
-  it("turns one-line # blocks into headings", () => {
-    expect(toBlocks("## عنوان\n\nنص")).toEqual([
-      { kind: "heading", text: "عنوان" },
-      { kind: "paragraph", text: "نص" },
-    ]);
-  });
-
-  it("keeps markup as plain text", () => {
-    expect(toBlocks("<script>alert(1)</script>")).toEqual([
-      { kind: "paragraph", text: "<script>alert(1)</script>" },
-    ]);
-  });
-
-  it("handles Windows line endings and empty input", () => {
-    expect(toBlocks("a\r\n\r\nb")).toHaveLength(2);
-    expect(toBlocks("  \n\n ")).toEqual([]);
+  it("accepts encoded references and refuses anything that is not a plain image name", () => {
+    expect(figureName(encodeURI("الأشكال/fig02_x.png"))).toBe("fig02_x.png");
+    expect(figureName("../../secret.sql")).toBeNull();
+    expect(figureName("javascript:alert(1)")).toBeNull();
+    expect(figureName(undefined)).toBeNull();
   });
 });
 

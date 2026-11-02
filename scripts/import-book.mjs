@@ -3,7 +3,7 @@
 // See .claude/skills/import-book/SKILL.md.
 //
 //   node scripts/import-book.mjs --dir <chapters folder> --slug infj-t-h-reader \
-//     --title "<book title>" [--lang ar] [--out <file.sql>]
+//     --title "<book title>" [--lang ar] [--out <file.sql>] [--strict]
 //
 // Without --out it only prints the report. The SQL file holds the book text,
 // so write it outside the repository and never commit it.
@@ -20,6 +20,7 @@ const { values } = parseArgs({
     title: { type: "string" },
     lang: { type: "string", default: "ar" },
     out: { type: "string" },
+    strict: { type: "boolean", default: false },
   },
 });
 
@@ -41,12 +42,16 @@ console.table(
 console.log(`Total words: ${chapters.reduce((sum, c) => sum + countWords(c.body), 0)}`);
 
 const problems = checkChapters(chapters);
-if (problems.length > 0) {
-  console.error(`\n${problems.length} problem(s). Nothing was written; fix the text with its author first.`);
-  for (const p of problems) console.error(`- [${p.kind}] chapter ${p.chapter ?? "-"}: ${p.message}`);
+const warnings = problems.filter((p) => p.warning);
+const errors = values.strict ? problems : problems.filter((p) => !p.warning);
+for (const p of warnings) console.warn(`- [${p.kind}, review] chapter ${p.chapter}: ${p.message}`);
+if (warnings.length > 0) console.warn(`${warnings.length} line(s) with digits to review (use --strict to refuse them).`);
+if (errors.length > 0) {
+  console.error(`\n${errors.length} problem(s). Nothing was written; fix the text with its author first.`);
+  for (const p of errors) console.error(`- [${p.kind}] chapter ${p.chapter ?? "-"}: ${p.message}`);
   process.exit(1);
 }
-console.log("\nChecks passed: support line at the start only, no digits or percent signs.");
+console.log("\nChecks passed: the support line opens the book and appears nowhere else.");
 
 if (values.out) {
   const out = resolve(values.out);

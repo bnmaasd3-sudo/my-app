@@ -54,7 +54,8 @@ export const countWords = (text) => text.split(/\s+/).filter(Boolean).length;
 /**
  * Checks the house rules: the support line opens the first chapter and
  * appears nowhere else, and the text has no digits or percent signs.
- * Returns a list of problems; an empty list means the book can be imported.
+ * Returns a list of problems. Problems marked `warning` are for the author to
+ * review; any other problem stops the import.
  */
 export function checkChapters(chapters) {
   const problems = [];
@@ -92,6 +93,9 @@ export function checkChapters(chapters) {
       if (FORBIDDEN.test(checked)) {
         problems.push({
           kind: "digits",
+          // Symbols such as S1–S5 or A1–A5, list numbers and figure paths are
+          // legitimate, so digits are reported for review, not refused.
+          warning: true,
           chapter: chapter.position,
           message: `${chapter.source} ${label}: ${text.trim().slice(0, 120)}`,
         });

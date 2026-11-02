@@ -25,13 +25,10 @@ type AuthError = { status?: number; code?: string };
 const isRateLimited = (error: AuthError) =>
   error.status === 429 || Boolean(error.code?.startsWith("over_"));
 
-// Supabase answers these when the email has no account. They are reported
-// like a sent code so the form does not reveal who has an account.
-const isUnknownAccount = (error: AuthError) =>
-  error.code === "otp_disabled" ||
-  error.code === "signup_disabled" ||
-  error.code === "user_not_found" ||
-  error.status === 422;
+// An email nobody invited is refused by the database (guard_new_user), and
+// Supabase answers with an error. It is reported like a sent code so the form
+// does not reveal who has an account. Only a network failure has no status.
+const isRefusedEmail = (error: AuthError) => typeof error.status === "number" && error.status >= 400;
 
 const safeLocale = (lang: string) => (hasLocale(lang) ? lang : "ar");
 
@@ -49,12 +46,10 @@ export async function login(
   const supabase = await createClient();
 
   if (intent === "send") {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
+    // Invited emails get their account on first sign-in; see guard_new_user.
+    const { error } = await supabase.auth.signInWithOtp({ email });
     if (error && isRateLimited(error)) return { step: "email", email, error: "rateLimited" };
-    if (error && !isUnknownAccount(error)) return { step: "email", email, error: "generic" };
+    if (error && !isRefusedEmail(error)) return { step: "email", email, error: "generic" };
     return { step: "code", email };
   }
 
