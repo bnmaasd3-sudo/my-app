@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      QARI_URL: ${{ inputs.url || vars.QARI_URL || 'https://qari.vercel.app' }}
+      QARI_URL: ${{ inputs.url || vars.QARI_URL || 'https://qari-bnmaasd3-3308.vercel.app' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
