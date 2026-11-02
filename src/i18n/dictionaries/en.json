@@ -1,0 +1,130 @@
+{
+  "app": {
+    "name": "Qari",
+    "tagline": "Your book, for your eyes only"
+  },
+  "meta": {
+    "title": "Qari — your book, for your eyes only",
+    "description": "Read the book you bought after signing in, chapter by chapter, with no files to download or forward."
+  },
+  "nav": {
+    "switchLanguage": "العربية",
+    "switchLanguageLabel": "Switch to Arabic",
+    "library": "My library",
+    "signOut": "Sign out"
+  },
+  "home": {
+    "title": "Your book, for your eyes only",
+    "lead": "Read the book you bought after signing in, chapter by chapter, with no files to download or forward.",
+    "signIn": "Sign in",
+    "featuresTitle": "What you'll find in Qari",
+    "features": {
+      "login": {
+        "title": "No password to remember",
+        "body": "Enter your email and we send you a code to sign in with."
+      },
+      "resume": {
+        "title": "Pick up where you left off",
+        "body": "Your reading position, font size and night mode are saved."
+      },
+      "personal": {
+        "title": "Your copy, in your name",
+        "body": "Your name appears faintly on every page, because this copy is yours alone."
+      }
+    }
+  },
+  "login": {
+    "title": "Sign in",
+    "lead": "Enter the email you bought the book with and we'll send you a sign-in code.",
+    "emailLabel": "Email",
+    "sendCode": "Send code",
+    "codeSent": "If this email has a Qari account, we've sent it a code. Check your inbox and spam folder.",
+    "codeLabel": "Sign-in code",
+    "verify": "Sign in",
+    "changeEmail": "Use a different email",
+    "pending": "One moment…",
+    "errors": {
+      "invalidEmail": "Enter a valid email address.",
+      "invalidCode": "That code is wrong or has expired. Ask for a new one.",
+      "rateLimited": "Too many attempts in a short time. Wait a little and try again.",
+      "generic": "We couldn't complete that right now. Try again shortly."
+    }
+  },
+  "library": {
+    "title": "My library",
+    "empty": "There are no books in your library yet. If you just bought one, it can take a few minutes to appear.",
+    "start": "Start reading",
+    "continue": "Continue reading",
+    "contents": "Contents"
+  },
+  "reader": {
+    "contents": "Contents",
+    "previous": "Previous chapter",
+    "next": "Next chapter",
+    "settings": "Reading settings",
+    "fontSize": "Text size",
+    "fontSizes": {
+      "sm": "Small",
+      "md": "Medium",
+      "lg": "Large"
+    },
+    "theme": "Mode",
+    "themes": {
+      "system": "Auto",
+      "light": "Day",
+      "dark": "Night"
+    },
+    "current": "Where you are"
+  },
+  "errors": {
+    "notEntitled": "This book isn't in your library.",
+    "deviceLimit": "This account is already open on two devices, which is the limit. Contact us to remove an old device.",
+    "deviceRevoked": "This device was removed from your account. Contact us if that's a mistake.",
+    "inactive": "This account is suspended. Contact us if that's a mistake.",
+    "generic": "We couldn't open this page right now. Try again shortly.",
+    "backToLibrary": "Back to my library"
+  },
+  "common": {
+    "loading": "Loading…"
+  },
+  "admin": {
+    "title": "Owner panel",
+    "open": "Owner panel",
+    "addReader": "Add a reader",
+    "email": "Email",
+    "name": "Name (shown in the watermark)",
+    "book": "Book",
+    "add": "Add and link",
+    "adding": "One moment…",
+    "added": "Reader added and linked to the book. They sign in with their email and a code.",
+    "noBooks": "There are no books yet. Import the book first.",
+    "books": "Books",
+    "chaptersCount": "Chapters: {n}",
+    "readersCount": "Readers: {n}",
+    "readers": "Readers",
+    "noReaders": "No readers yet.",
+    "active": "Active",
+    "suspended": "Suspended",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "link": "Link to book",
+    "unlink": "Unlink",
+    "fromSalla": "from Salla",
+    "devices": "Devices",
+    "noDevices": "Hasn't opened a chapter yet.",
+    "lastRead": "Last read:",
+    "removeDevice": "Remove device",
+    "removed": "Removed",
+    "recentReads": "Recent reads",
+    "noReads": "No reads yet.",
+    "errors": {
+      "invalidEmail": "Enter a valid email.",
+      "noBook": "Choose a book.",
+      "noServiceKey": "The service key isn't set on the server (SUPABASE_SERVICE_ROLE_KEY), so accounts can't be created here yet.",
+      "generic": "That didn't work. Try again."
+    }
+  },
+  "footer": {
+    "rights": "Qari"
+  }
+}
