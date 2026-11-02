@@ -1,5 +1,4 @@
 import { grantStatusesFromEnv, parseSallaEvent, sallaAction, verifySallaRequest } from "@/lib/salla";
-import { findOrCreateAccount } from "@/lib/supabase/accounts";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isValidEmail } from "@/lib/validation";
 
@@ -67,17 +66,17 @@ export async function POST(request: Request) {
     if (!order.email || !isValidEmail(order.email)) return await finish("no_email");
     if (order.skus.length === 0) return await finish("no_skus");
 
-    const userId = await findOrCreateAccount(service, order.email);
-    const { data, error } = await service.rpc("salla_grant_order", {
+    // Unlocks now if the buyer has an account, otherwise at their first sign-in.
+    const { data, error } = await service.rpc("salla_grant_email", {
       p_order_id: order.orderId,
-      p_user_id: userId,
       p_email: order.email,
       p_name: order.name,
       p_skus: order.skus,
     });
     if (error) throw error;
-    const result = data as { books: string[]; unknown_skus: string[] };
-    return await finish(result.books.length > 0 ? "granted" : "unknown_product", result);
+    const result = data as { books: string[]; unknown_skus: string[]; pending: boolean };
+    if (result.books.length === 0) return await finish("unknown_product", result);
+    return await finish(result.pending ? "invited" : "granted", result);
   } catch (error) {
     // 500 makes Salla retry; the event stays visible in the owner panel.
     const message = error instanceof Error ? error.message : String((error as { message?: string })?.message ?? error);

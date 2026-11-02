@@ -96,7 +96,8 @@
     "book": "Book",
     "add": "Add and link",
     "adding": "One moment…",
-    "added": "Reader added and linked to the book. They sign in with their email and a code.",
+    "linked": "Reader added and the book is open to them. They sign in with their email and a code.",
+    "invited": "Reader invited. The book opens when they first sign in with their email and a code.",
     "noBooks": "There are no books yet. Import the book first.",
     "books": "Books",
     "chaptersCount": "Chapters: {n}",
@@ -120,7 +121,6 @@
     "errors": {
       "invalidEmail": "Enter a valid email.",
       "noBook": "Choose a book.",
-      "noServiceKey": "The service key isn't set on the server (SUPABASE_SERVICE_ROLE_KEY), so accounts can't be created here yet.",
       "generic": "That didn't work. Try again."
     },
     "salla": {

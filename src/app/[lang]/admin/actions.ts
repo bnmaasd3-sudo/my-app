@@ -1,14 +1,12 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { findOrCreateAccount } from "@/lib/supabase/accounts";
-import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isValidEmail, normalizeEmail } from "@/lib/validation";
 
 export type AddReaderState = {
-  status: "idle" | "added" | "error";
-  error?: "invalidEmail" | "noBook" | "noServiceKey" | "generic";
+  status: "idle" | "linked" | "invited" | "error";
+  error?: "invalidEmail" | "noBook" | "generic";
 };
 
 // Every function below is also checked by the database (assert_admin), so a
@@ -29,29 +27,15 @@ export async function addReader(_previous: AddReaderState, formData: FormData): 
   if (!isValidEmail(email)) return { status: "error", error: "invalidEmail" };
   if (!book) return { status: "error", error: "noBook" };
 
-  const service = createServiceClient();
-  if (!service) return { status: "error", error: "noServiceKey" };
-
-  try {
-    const userId = await findOrCreateAccount(service, email);
-    const registered = await supabase.rpc("admin_register_reader", {
-      p_user_id: userId,
-      p_email: email,
-      p_display_name: name,
-    });
-    if (registered.error) throw registered.error;
-    const linked = await supabase.rpc("admin_set_entitlement", {
-      p_reader_id: userId,
-      p_book_slug: book,
-      p_active: true,
-    });
-    if (linked.error) throw linked.error;
-  } catch {
-    return { status: "error", error: "generic" };
-  }
+  const { data, error } = await supabase.rpc("admin_add_reader", {
+    p_email: email,
+    p_display_name: name,
+    p_book_slug: book,
+  });
+  if (error) return { status: "error", error: "generic" };
 
   refresh();
-  return { status: "added" };
+  return { status: data === "linked" ? "linked" : "invited" };
 }
 
 export async function setReaderActive(readerId: string, active: boolean) {

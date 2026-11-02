@@ -61,7 +61,7 @@ describe("checkChapters", () => {
     for (const bad of ["سنة 2020", "سنة ٢٠٢٠", "سنة ۲۰۲۰", "نصف ٪", "half %"]) {
       const chapters = good();
       chapters[1].body = bad;
-      expect(checkChapters(chapters).map((p) => p.kind)).toEqual(["digits"]);
+      expect(checkChapters(chapters).map((p) => [p.kind, p.warning])).toEqual([["digits", true]]);
     }
   });
 

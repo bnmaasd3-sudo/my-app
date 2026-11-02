@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Makes an email the owner of the panel at /ar/admin. Creates the sign-in
-// account if it does not exist. Run once by the project owner.
+// Makes an email the owner of the panel at /ar/admin. If the email has no
+// account yet, it is invited and becomes owner at its first sign-in.
 //
 //   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/add-admin.mjs --email owner@example.com [--yes]
 import { parseArgs } from "node:util";
@@ -37,27 +37,17 @@ async function findUserId() {
   }
 }
 
-let userId = await findUserId();
-console.log(`${userId ? "Existing" : "New"} account ${email} → owner panel`);
+const userId = await findUserId();
+console.log(`${email} → owner panel (${userId ? "existing account" : "account created at first sign-in"})`);
 if (!values.yes) {
   console.log("Dry run. Add --yes to apply.");
   process.exit(0);
 }
 
+const { error: inviteError } = await supabase.from("invites").upsert({ email, is_admin: true });
+if (inviteError) throw inviteError;
 if (userId) {
-  // Someone may have signed up with this email and a password first. Readers
-  // only use email codes, so replace any password with a random one.
-  const { error } = await supabase.auth.admin.updateUserById(userId, {
-    password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
-    email_confirm: true,
-  });
+  const { error } = await supabase.from("admins").upsert({ user_id: userId });
   if (error) throw error;
-} else {
-  const { data, error } = await supabase.auth.admin.createUser({ email, email_confirm: true });
-  if (error) throw error;
-  userId = data.user.id;
 }
-
-const { error } = await supabase.from("admins").upsert({ user_id: userId });
-if (error) throw error;
 console.log("Done. Sign in at /ar/login with this email, then open /ar/admin.");

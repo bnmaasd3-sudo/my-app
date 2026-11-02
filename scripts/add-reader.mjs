@@ -66,21 +66,22 @@ if (!values.yes) {
   process.exit(0);
 }
 
-let userId = existingId;
-if (userId) {
-  // Someone may have signed up with this email and a password first. Readers
-  // only use email codes, so replace any password with a random one.
-  const { error } = await supabase.auth.admin.updateUserById(userId, {
-    password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
-    email_confirm: true,
-  });
+const { error: inviteError } = await supabase
+  .from("invites")
+  .upsert({ email, ...(values.name ? { display_name: values.name } : {}) });
+if (inviteError) throw inviteError;
+
+if (!existingId) {
+  // No account yet: the book opens at the first sign-in (see apply_invite).
+  const { error } = await supabase
+    .from("pending_entitlements")
+    .upsert({ email, book_id: book.id, source: "manual" });
   if (error) throw error;
-} else {
-  const { data, error } = await supabase.auth.admin.createUser({ email, email_confirm: true });
-  if (error) throw error;
-  userId = data.user.id;
+  console.log("Invited. The book opens when they first sign in with this email and the code it receives.");
+  process.exit(0);
 }
 
+const userId = existingId;
 const reader = { id: userId, email, active: true };
 if (values.name) reader.display_name = values.name;
 const { error: readerError } = await supabase.from("readers").upsert(reader);

@@ -5,11 +5,12 @@ import { Suspense } from "react";
 import { dir, hasLocale, type Locale } from "@/i18n/config";
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
-import { toBlocks } from "@/lib/book-text";
+import { figurePaths } from "@/lib/book-text";
 import { DEVICE_COOKIE } from "@/lib/device";
 import { readerErrorKind } from "@/lib/reader-errors";
 import { createClient } from "@/lib/supabase/server";
 import { ReaderError } from "../../../reader-error";
+import { BookMarkdown } from "../../book-markdown";
 import { ReaderFrame, type FontSize, type Theme } from "../../reader-frame";
 import { Watermark } from "../../watermark";
 
@@ -69,6 +70,18 @@ async function Chapter({
   }
 
   const data = opened.data as OpenedChapter;
+
+  // Short-lived links to this chapter's figures; storage checks the reader owns the book.
+  const figures: Record<string, string> = {};
+  const paths = figurePaths(data.chapter.body, data.book.slug);
+  if (paths.length > 0) {
+    const signed = await supabase.storage.from("figures").createSignedUrls(paths, 600);
+    for (const item of signed.data ?? []) {
+      const name = item.path?.split("/").pop();
+      if (name && item.signedUrl) figures[name] = item.signedUrl;
+    }
+  }
+
   const bookLang = hasLocale(data.book.lang) ? data.book.lang : lang;
   const base = `/${lang}/read/${data.book.slug}`;
 
@@ -95,17 +108,7 @@ async function Chapter({
         <h1 className="mb-8 font-heading text-[1.4em] leading-snug font-bold">
           {data.chapter.title}
         </h1>
-        {toBlocks(data.chapter.body).map((block, index) =>
-          block.kind === "heading" ? (
-            <h2 key={index} className="mt-8 mb-4 font-heading text-[1.15em] font-semibold">
-              {block.text}
-            </h2>
-          ) : (
-            <p key={index} className="mb-5 whitespace-pre-line">
-              {block.text}
-            </p>
-          ),
-        )}
+        <BookMarkdown body={data.chapter.body} figures={figures} />
       </article>
 
       <nav className="mx-auto flex max-w-2xl justify-between gap-3 px-5 pb-16">

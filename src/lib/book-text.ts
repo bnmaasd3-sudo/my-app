@@ -1,20 +1,27 @@
-export type TextBlock = { kind: "heading" | "paragraph"; text: string };
+// Figures are written in the book as ![caption](الأشكال/name.png) and stored in
+// the private "figures" bucket at "<book slug>/figures/name.png".
 
-/**
- * Splits a stored chapter body into headings and paragraphs. Paragraphs are
- * separated by blank lines; a one-line block starting with "#" is a heading.
- * Rendered as plain text, never as HTML.
- */
-export function toBlocks(body: string): TextBlock[] {
-  return body
-    .replace(/\r\n?/g, "\n")
-    .split(/\n\s*\n/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean)
-    .map((chunk) => {
-      const heading = /^#{1,6}\s+([^\n]+)$/.exec(chunk);
-      return heading
-        ? { kind: "heading", text: heading[1].trim() }
-        : { kind: "paragraph", text: chunk };
-    });
+const IMAGE = /!\[[^\]]*\]\(\s*<?([^)\s>]+)>?/g;
+
+/** The file name a figure reference points to, or null if it has none. */
+export function figureName(src: string | undefined | null): string | null {
+  if (!src) return null;
+  let decoded = src;
+  try {
+    decoded = decodeURIComponent(src);
+  } catch {
+    // Keep the raw value if it is not valid percent-encoding.
+  }
+  const name = decoded.split(/[\\/]/).pop()?.trim() ?? "";
+  return /^[\w.\-]+\.(png|jpe?g|webp|gif|svg)$/i.test(name) ? name : null;
+}
+
+/** Storage paths of every figure a chapter body refers to. */
+export function figurePaths(body: string, bookSlug: string): string[] {
+  const names = new Set<string>();
+  for (const match of body.matchAll(IMAGE)) {
+    const name = figureName(match[1]);
+    if (name) names.add(name);
+  }
+  return [...names].map((name) => `${bookSlug}/figures/${name}`);
 }
