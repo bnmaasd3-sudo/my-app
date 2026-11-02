@@ -64,7 +64,12 @@ const DEVICE_3 = "device-three-00000003";
 
 let db: PGlite;
 
-async function as<T>(role: "anon" | "authenticated", userId: string | null, query: string, params: unknown[] = []) {
+async function as<T>(
+  role: "anon" | "authenticated" | "service_role",
+  userId: string | null,
+  query: string,
+  params: unknown[] = [],
+) {
   await db.exec(`reset role`);
   await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [userId ?? ""]);
   await db.exec(`set role ${role}`);
@@ -95,6 +100,7 @@ beforeEach(async () => {
   await db.exec(`reset role`);
   await db.exec(`
     truncate public.reading_log, public.reading_state, public.reader_prefs, public.devices,
+      public.salla_events, public.salla_orders, public.salla_products,
       public.entitlements, public.chapters, public.books, public.readers, public.admins,
       auth.users cascade;
   `);
@@ -367,5 +373,88 @@ describe("owner panel", () => {
       `select public.admin_dashboard() as data`,
     );
     expect(data.reads[0]).toEqual(expect.objectContaining({ email: "infj@example.com", chapter: "INFJ chapter 2" }));
+  });
+});
+
+describe("salla purchases", () => {
+  const BUYER = NEW_USER;
+  const grant = (orderId: string, skus: string[], userId = BUYER, email = "new@example.com") =>
+    as<{ data: { books: string[]; unknown_skus: string[] } }>(
+      "service_role",
+      null,
+      `select public.salla_grant_order($1, $2, $3, 'Buyer', $4) as data`,
+      [orderId, userId, email, skus],
+    ).then((rows) => rows[0].data);
+  const revoke = (orderId: string) =>
+    as<{ n: number }>("service_role", null, `select public.salla_revoke_order($1) as n`, [orderId]).then(
+      (rows) => rows[0].n,
+    );
+
+  beforeEach(async () => {
+    await as("authenticated", OWNER, `select public.admin_set_salla_product('SKU-INFJ', 'infj-t-h-reader')`);
+  });
+
+  it("unlocks the purchased book, and only that book", async () => {
+    const result = await grant("1001", ["SKU-INFJ", "SKU-OTHER"]);
+    expect(result).toEqual({ books: ["infj-t-h-reader"], unknown_skus: ["SKU-OTHER"] });
+    await expect(openChapter(BUYER, "infj-t-h-reader", 1)).resolves.toBeTruthy();
+    await expect(openChapter(BUYER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("is safe to receive twice", async () => {
+    await grant("1001", ["SKU-INFJ"]);
+    await grant("1001", ["SKU-INFJ"]);
+    const rows = await db.query<{ n: number }>(`select count(*)::int as n from public.entitlements where reader_id = $1`, [BUYER]);
+    expect(rows.rows[0].n).toBe(1);
+  });
+
+  it("locks the book again on refund, but leaves manual links alone", async () => {
+    await grant("1001", ["SKU-INFJ"]);
+    expect(await revoke("1001")).toBe(1);
+    await expect(openChapter(BUYER, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
+
+    // INFJ_READER's link was made by hand; an order for it must not remove it.
+    await grant("2002", ["SKU-INFJ"], INFJ_READER, "infj@example.com");
+    expect(await revoke("2002")).toBe(0);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).resolves.toBeTruthy();
+  });
+
+  it("does not reactivate a reader the owner suspended", async () => {
+    await as("authenticated", OWNER, `select public.admin_set_reader_active('${INFJ_READER}', false)`);
+    await grant("3003", ["SKU-INFJ"], INFJ_READER, "infj@example.com");
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).rejects.toThrow("reader_inactive");
+  });
+
+  it("refuses an account id that does not match the buyer's email", async () => {
+    await expect(grant("4004", ["SKU-INFJ"], BUYER, "infj@example.com")).rejects.toThrow("account_mismatch");
+  });
+
+  it("cannot be called by readers or visitors", async () => {
+    for (const role of ["authenticated", "anon"] as const) {
+      await expect(
+        as(role, INFJ_READER, `select public.salla_grant_order('x', $1, 'infj@example.com', '', '{SKU-INFJ}')`, [
+          INFJ_READER,
+        ]),
+      ).rejects.toThrow(/permission denied/);
+      await expect(as(role, INFJ_READER, `select public.salla_revoke_order('x')`)).rejects.toThrow(
+        /permission denied/,
+      );
+    }
+    await expect(as("authenticated", INFJ_READER, `select public.admin_salla()`)).rejects.toThrow("not_admin");
+    await expect(
+      as("authenticated", INFJ_READER, `select public.admin_set_salla_product('X', 'esfj-reader')`),
+    ).rejects.toThrow("not_admin");
+    await expect(as("authenticated", INFJ_READER, `select * from public.salla_events`)).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("shows the owner the product mapping", async () => {
+    const [{ data }] = await as<{ data: { products: { sku: string; book: string }[] } }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_salla() as data`,
+    );
+    expect(data.products).toEqual([expect.objectContaining({ sku: "SKU-INFJ", book: "infj-t-h-reader" })]);
   });
 });

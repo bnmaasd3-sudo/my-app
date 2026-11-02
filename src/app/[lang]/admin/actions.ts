@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { findOrCreateAccount } from "@/lib/supabase/accounts";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isValidEmail, normalizeEmail } from "@/lib/validation";
@@ -16,32 +17,6 @@ async function ownerClient() {
   const supabase = await createClient();
   const { data: isAdmin } = await supabase.rpc("is_admin");
   return isAdmin === true ? supabase : null;
-}
-
-type ServiceClient = NonNullable<ReturnType<typeof createServiceClient>>;
-
-async function findOrCreateAccount(service: ServiceClient, email: string) {
-  const created = await service.auth.admin.createUser({ email, email_confirm: true });
-  if (created.data.user) return created.data.user.id;
-
-  for (let page = 1; page <= 50; page++) {
-    const { data, error } = await service.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const user = data.users.find((u) => u.email?.toLowerCase() === email);
-    if (user) {
-      // Someone may have signed up with this email and a password before the
-      // buyer did. Readers only use email codes, so replace any password with
-      // a random one before the account is given a book.
-      const reset = await service.auth.admin.updateUserById(user.id, {
-        password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
-        email_confirm: true,
-      });
-      if (reset.error) throw reset.error;
-      return user.id;
-    }
-    if (data.users.length < 1000) break;
-  }
-  throw created.error ?? new Error("Could not create the sign-in account");
 }
 
 export async function addReader(_previous: AddReaderState, formData: FormData): Promise<AddReaderState> {
@@ -94,6 +69,16 @@ export async function setEntitlement(readerId: string, bookSlug: string, active:
     p_book_slug: bookSlug,
     p_active: active,
   });
+  refresh();
+}
+
+export async function setSallaProduct(formData: FormData) {
+  const supabase = await ownerClient();
+  if (!supabase) return;
+  const sku = String(formData.get("sku") ?? "").trim().slice(0, 120);
+  const book = String(formData.get("book") ?? "");
+  if (!sku || !book) return;
+  await supabase.rpc("admin_set_salla_product", { p_sku: sku, p_book_slug: book });
   refresh();
 }
 

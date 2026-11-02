@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import type { Locale } from "@/i18n/config";
@@ -6,7 +7,7 @@ import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "../site-header";
-import { AdminView, type Dashboard } from "./admin-view";
+import { AdminView, type Dashboard, type SallaPanel } from "./admin-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(await currentLocale());
@@ -35,7 +36,21 @@ async function Panel({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) notFound();
 
-  const { data, error } = await supabase.rpc("admin_dashboard");
-  if (error) return <p role="alert">{dict.errors.generic}</p>;
-  return <AdminView data={data as Dashboard} lang={lang} dict={dict} />;
+  const [dashboard, salla] = await Promise.all([
+    supabase.rpc("admin_dashboard"),
+    supabase.rpc("admin_salla"),
+  ]);
+  if (dashboard.error || salla.error) return <p role="alert">{dict.errors.generic}</p>;
+
+  const host = (await headers()).get("host");
+  const webhookUrl = host ? `https://${host}/api/salla/webhook` : "/api/salla/webhook";
+  return (
+    <AdminView
+      data={dashboard.data as Dashboard}
+      salla={salla.data as SallaPanel}
+      webhookUrl={webhookUrl}
+      lang={lang}
+      dict={dict}
+    />
+  );
 }

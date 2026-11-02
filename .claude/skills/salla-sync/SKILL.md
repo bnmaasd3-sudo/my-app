@@ -7,8 +7,17 @@ description: ربط متجر سلة بـ «قارئ» — استقبال إشع�
 
 > قبل كتابة أي كود: راجع وثائق سلة الحالية (docs.salla.dev) لأسماء الأحداث وترويسات التوقيع وشكل الحمولة، فهي تتغير. ما يلي هو التصميم، والتفاصيل تُطابَق بالوثائق.
 
-## المسار
-`POST /api/salla/webhook` (Route Handler في `src/app/api/salla/webhook/route.ts`، خارج مقطع اللغة؛ `src/proxy.ts` يتجاوز `/api`).
+## ما هو مبني (المرحلة 2)
+- المسار: `POST /api/salla/webhook` في `src/app/api/salla/webhook/route.ts`، خارج مقطع اللغة، و`src/proxy.ts` يتجاوز `/api`.
+- التحقق والتحليل والقرار في `src/lib/salla.ts`، واختباراته في `src/lib/salla.test.ts` و`route.test.ts`.
+- القاعدة في `supabase/migrations/20261102020000_salla.sql`:
+  - `salla_products`: ربط SKU بالكتاب، من لوحة المالك.
+  - `salla_orders`: ما فتحه كل طلب.
+  - `salla_events`: سجل الإشعارات بلا بيانات دفع ولا عناوين.
+  - الدالتان `salla_grant_order` و`salla_revoke_order` لمفتاح الخدمة وحده.
+- المتغيرات: `SALLA_WEBHOOK_SECRET` (إلزامي)، و`SALLA_GRANT_STATUSES` (اختياري؛ الافتراضي: in_progress,completed,delivering,delivered,shipped).
+- القارئ الذي أوقفه المالك يبقى موقوفًا حتى لو اشترى. والاسترجاع يقفل ما فتحه الطلب فقط، ولا يمس الربط اليدوي.
+- **قبل الاعتماد:** أرسل طلبًا تجريبيًا من سلة، ثم افتح لوحة المالك ← آخر إشعارات سلة، وتأكد أن الحدث والحالة والبريد والـ SKU مقروءة. إن اختلفت أسماء الحقول عن المتوقع، عدّل `parseSallaEvent` واختباره.
 
 ## التحقق من التوقيع (قبل أي شيء آخر)
 1. اقرأ الجسم خامًا (`await request.text()`) قبل تحويله إلى JSON.
