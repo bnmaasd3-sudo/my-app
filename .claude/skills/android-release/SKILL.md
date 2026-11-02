@@ -7,6 +7,12 @@ description: إصدار نسخة أندرويد من «قارئ» بـ Capacitor
 
 > راجع وثائق Capacitor الحالية (capacitorjs.com/docs) قبل التنفيذ لأرقام الإصدارات والأوامر.
 
+## ما هو مبني (المرحلة 3)
+- `capacitor.config.ts`: يفتح التطبيق الموقع المنشور (`QARI_URL`)، و`android-shell/` صفحة تظهر حين لا يوجد اتصال.
+- `android/`: مشروع أندرويد. `MainActivity.java` يفعّل FLAG_SECURE، والأيقونات بلون التطبيق، والاسم «قارئ» بالعربية و«Qari» بالإنجليزية.
+- `.github/workflows/android.yml`: يبني APK تجريبيًا على GitHub ويرفعه ملفًا قابلًا للتنزيل (Artifact باسم `qari-debug-apk`). يعمل يدويًا من تبويب Actions، أو تلقائيًا عند تغيير ملفات أندرويد. اضبط متغير المستودع `QARI_URL` على رابط الإنتاج.
+- بيئة Claude لا تستطيع البناء محليًا، لأن مستودعات Google محجوبة فيها. البناء يتم على GitHub.
+
 ## التغليف
 - التطبيق موقع بخادم (تسجيل دخول وفصول من القاعدة)، فيُغلَّف بتوجيه Capacitor إلى الموقع المنشور: `server.url` في `capacitor.config.ts` يشير إلى رابط الإنتاج على Vercel.
 - `appId`: `app.qari.reader` (لا يتغير بعد أول رفع للمتجر). `appName`: `قارئ`.
