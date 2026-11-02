@@ -6,6 +6,7 @@ import { saveProgress, savePrefs } from "../actions";
 
 export type FontSize = "sm" | "md" | "lg";
 export type Theme = "system" | "light" | "dark";
+export type Layout = "auto" | "mobile" | "laptop";
 
 type Props = {
   bookSlug: string;
@@ -13,13 +14,17 @@ type Props = {
   initialRatio: number;
   initialFontSize: FontSize;
   initialTheme: Theme;
+  initialLayout: Layout;
   labels: Dictionary["reader"];
   header: ReactNode;
+  /** Chapter list, shown beside the text in the laptop layout. */
+  sidebar: ReactNode;
   children: ReactNode;
 };
 
 const FONT_SIZES: FontSize[] = ["sm", "md", "lg"];
 const THEMES: Theme[] = ["system", "light", "dark"];
+const LAYOUTS: Layout[] = ["auto", "mobile", "laptop"];
 const SAVE_DELAY_MS = 1500;
 
 function scrollRatio() {
@@ -33,12 +38,15 @@ export function ReaderFrame({
   initialRatio,
   initialFontSize,
   initialTheme,
+  initialLayout,
   labels,
   header,
+  sidebar,
   children,
 }: Props) {
   const [fontSize, setFontSize] = useState(initialFontSize);
   const [theme, setTheme] = useState(initialTheme);
+  const [layout, setLayout] = useState(initialLayout);
   const [, startTransition] = useTransition();
   const lastSaved = useRef(initialRatio);
 
@@ -73,23 +81,26 @@ export function ReaderFrame({
     };
   }, [bookSlug, position, initialRatio]);
 
-  const update = (nextFontSize: FontSize, nextTheme: Theme) => {
-    setFontSize(nextFontSize);
-    setTheme(nextTheme);
-    startTransition(() => savePrefs(nextFontSize, nextTheme));
+  const update = (next: { fontSize?: FontSize; theme?: Theme; layout?: Layout }) => {
+    const prefs = { fontSize: next.fontSize ?? fontSize, theme: next.theme ?? theme, layout: next.layout ?? layout };
+    setFontSize(prefs.fontSize);
+    setTheme(prefs.theme);
+    setLayout(prefs.layout);
+    startTransition(() => savePrefs(prefs.fontSize, prefs.theme, prefs.layout));
   };
 
   return (
     <div
       data-reader
       data-font={fontSize}
+      data-layout={layout}
       data-theme={theme === "system" ? undefined : theme}
       className="min-h-dvh bg-background text-foreground"
       onContextMenu={(event) => event.preventDefault()}
       onCopy={(event) => event.preventDefault()}
     >
       <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-5 py-3">
+        <div className="reader-bar flex items-center justify-between gap-3 py-3">
           {header}
           <details className="relative">
             <summary className="cursor-pointer list-none rounded-full border border-border px-3 py-1.5 text-sm">
@@ -100,19 +111,28 @@ export function ReaderFrame({
                 legend={labels.fontSize}
                 options={FONT_SIZES.map((value) => ({ value, label: labels.fontSizes[value] }))}
                 value={fontSize}
-                onChange={(value) => update(value, theme)}
+                onChange={(value) => update({ fontSize: value })}
               />
               <Choice
                 legend={labels.theme}
                 options={THEMES.map((value) => ({ value, label: labels.themes[value] }))}
                 value={theme}
-                onChange={(value) => update(fontSize, value)}
+                onChange={(value) => update({ theme: value })}
+              />
+              <Choice
+                legend={labels.layout}
+                options={LAYOUTS.map((value) => ({ value, label: labels.layouts[value] }))}
+                value={layout}
+                onChange={(value) => update({ layout: value })}
               />
             </div>
           </details>
         </div>
       </div>
-      {children}
+      <div className="reader-shell">
+        <aside className="reader-sidebar">{sidebar}</aside>
+        <div className="reader-main">{children}</div>
+      </div>
     </div>
   );
 }

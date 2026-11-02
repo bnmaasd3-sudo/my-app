@@ -221,6 +221,20 @@ describe("direct table access", () => {
     ).rejects.toThrow(/row-level security/);
   });
 
+  it("saves the reading layout and refuses unknown ones", async () => {
+    await as(
+      "authenticated",
+      INFJ_READER,
+      `insert into public.reader_prefs (reader_id, layout) values ($1, 'laptop')`,
+      [INFJ_READER],
+    );
+    await expect(
+      as("authenticated", INFJ_READER, `update public.reader_prefs set layout = 'tablet' where reader_id = $1`, [
+        INFJ_READER,
+      ]),
+    ).rejects.toThrow(/check constraint/);
+  });
+
   it("does not let readers grant themselves a book", async () => {
     const esfj = await db.query<{ id: string }>(`select id from public.books where slug = 'esfj-reader'`);
     await expect(

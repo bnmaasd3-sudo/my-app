@@ -89,9 +89,10 @@ export async function saveProgress(bookSlug: string, position: number, scrollRat
 
 const FONT_SIZES = ["sm", "md", "lg"];
 const THEMES = ["system", "light", "dark"];
+const LAYOUTS = ["auto", "mobile", "laptop"];
 
-export async function savePrefs(fontSize: string, theme: string) {
-  if (!FONT_SIZES.includes(fontSize) || !THEMES.includes(theme)) return;
+export async function savePrefs(fontSize: string, theme: string, layout: string) {
+  if (!FONT_SIZES.includes(fontSize) || !THEMES.includes(theme) || !LAYOUTS.includes(layout)) return;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const readerId = data?.claims?.sub;
@@ -100,6 +101,7 @@ export async function savePrefs(fontSize: string, theme: string) {
     reader_id: readerId,
     font_size: fontSize,
     theme,
+    layout,
     updated_at: new Date().toISOString(),
   });
 }
