@@ -51,6 +51,9 @@
 - `src/app/[lang]/admin`: لوحة المالك (إضافة قارئ وربطه بكتاب، إيقافه، فك الربط، إلغاء جهاز، آخر القراءات). لا يدخلها إلا من في جدول `admins`، والتحقق في القاعدة.
 - `scripts/import-book.mjs` و`scripts/add-reader.mjs` و`scripts/add-admin.mjs`: إدخال كتاب، وإضافة قارئ يدويًا، وتعيين المالك أول مرة.
 - `src/app/manifest.ts` و`public/icons/`: ملف التطبيق القابل للتثبيت (PWA) وأيقوناته.
+- `src/app/api/salla/webhook` و`src/lib/salla.ts`: إشعارات سلة (فتح الكتاب بعد الدفع، وإقفاله عند الاسترجاع).
+- `capacitor.config.ts` و`android/` و`android-shell/`: تطبيق أندرويد (FLAG_SECURE في `MainActivity.java`).
+- `.github/workflows/`: `ci.yml` (فحص واختبارات وبناء لكل طلب دمج)، و`android.yml` (بناء APK تجريبي).
 - `.claude/skills/`: سكِلات المهام المتكررة (إدخال كتاب، شاشات القراءة، الصلاحيات، سلة، أندرويد، النشر).
 - `.claude/commands/`: الاختصارات (`/review-code` `/security` `/test` `/deploy` `/add-reader` `/add-book` `/apk` `/app-status` `/budget`).
 - `docs/budget.md`: تقدير كل مرحلة وما صُرف فعلًا.
