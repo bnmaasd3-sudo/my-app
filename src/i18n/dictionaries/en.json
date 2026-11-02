@@ -74,6 +74,12 @@
       "light": "Day",
       "dark": "Night"
     },
+    "layout": "Layout",
+    "layouts": {
+      "auto": "Auto",
+      "mobile": "Phone",
+      "laptop": "Laptop"
+    },
     "current": "Where you are"
   },
   "errors": {

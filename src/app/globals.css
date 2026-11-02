@@ -51,18 +51,89 @@ body {
   color: var(--foreground);
 }
 
-/* Reading text sizes (see .claude/skills/reader-ui). */
-[data-font="sm"] .reader-text {
-  font-size: 18px;
-  line-height: 1.9;
+/* Reading layouts (see .claude/skills/reader-ui). Phone: one column, smaller
+   text, narrow margins. Laptop: a centred column of about seventy characters,
+   larger text, and the chapter list on the start side. "auto" picks by width. */
+.reader-sidebar {
+  display: none;
 }
-[data-font="md"] .reader-text {
-  font-size: 21px;
-  line-height: 2;
+.reader-bar,
+.reader-text,
+.reader-nav {
+  margin-inline: auto;
+  max-width: 42rem;
+  padding-inline: 1rem;
 }
-[data-font="lg"] .reader-text {
-  font-size: 24px;
-  line-height: 2.1;
+[data-font="sm"] .reader-text { font-size: 16px; line-height: 1.85; }
+[data-font="md"] .reader-text { font-size: 18px; line-height: 1.9; }
+[data-font="lg"] .reader-text { font-size: 21px; line-height: 2; }
+
+[data-reader][data-layout="laptop"] {
+  .reader-shell {
+    display: grid;
+    grid-template-columns: 16rem minmax(0, 1fr);
+    gap: 2.5rem;
+    max-width: 78rem;
+    margin-inline: auto;
+    padding-inline: 2rem;
+  }
+  .reader-sidebar {
+    display: block;
+    position: sticky;
+    top: 4.5rem;
+    align-self: start;
+    max-height: calc(100dvh - 6rem);
+    overflow-y: auto;
+    padding-block: 2rem;
+  }
+  .reader-bar {
+    max-width: 78rem;
+    padding-inline: 2rem;
+  }
+  .reader-text {
+    max-width: 36em;
+  }
+  .reader-nav {
+    max-width: 49.5rem;
+  }
+  &[data-font="sm"] .reader-text { font-size: 19px; line-height: 2; }
+  &[data-font="md"] .reader-text { font-size: 22px; line-height: 2.1; }
+  &[data-font="lg"] .reader-text { font-size: 25px; line-height: 2.2; }
+}
+
+@media (min-width: 1024px) {
+  [data-reader][data-layout="auto"] {
+    .reader-shell {
+      display: grid;
+      grid-template-columns: 16rem minmax(0, 1fr);
+      gap: 2.5rem;
+      max-width: 78rem;
+      margin-inline: auto;
+      padding-inline: 2rem;
+    }
+    .reader-sidebar {
+      display: block;
+      position: sticky;
+      top: 4.5rem;
+      align-self: start;
+      max-height: calc(100dvh - 6rem);
+      overflow-y: auto;
+      padding-block: 2rem;
+    }
+    .reader-bar {
+      max-width: 78rem;
+      padding-inline: 2rem;
+    }
+    .reader-text {
+      max-width: 36em;
+    }
+    .reader-nav {
+      max-width: 49.5rem;
+    }
+    &[data-font="sm"] .reader-text { font-size: 19px; line-height: 2; }
+    &[data-font="md"] .reader-text { font-size: 22px; line-height: 2.1; }
+    &[data-font="lg"] .reader-text { font-size: 25px; line-height: 2.2; }
+  }
 }
 
 [data-reader] .reader-text {

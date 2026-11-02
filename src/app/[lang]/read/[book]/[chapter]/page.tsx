@@ -11,7 +11,7 @@ import { readerErrorKind } from "@/lib/reader-errors";
 import { createClient } from "@/lib/supabase/server";
 import { ReaderError } from "../../../reader-error";
 import { BookMarkdown } from "../../book-markdown";
-import { ReaderFrame, type FontSize, type Theme } from "../../reader-frame";
+import { ReaderFrame, type FontSize, type Layout, type Theme } from "../../reader-frame";
 import { Watermark } from "../../watermark";
 
 type OpenedChapter = {
@@ -52,13 +52,14 @@ async function Chapter({
 
   const deviceId = (await cookies()).get(DEVICE_COOKIE)?.value ?? "";
   const supabase = await createClient();
-  const [opened, prefs] = await Promise.all([
+  const [opened, prefs, toc] = await Promise.all([
     supabase.rpc("open_chapter", {
       p_book_slug: book,
       p_position: position,
       p_device_id: deviceId,
     }),
-    supabase.from("reader_prefs").select("font_size, theme").maybeSingle(),
+    supabase.from("reader_prefs").select("font_size, theme, layout").maybeSingle(),
+    supabase.rpc("book_toc", { p_book_slug: book }),
   ]);
 
   if (opened.error) {
@@ -82,6 +83,7 @@ async function Chapter({
     }
   }
 
+  const chapters = toc.error ? [] : ((toc.data as { chapters: { position: number; title: string }[] }).chapters ?? []);
   const bookLang = hasLocale(data.book.lang) ? data.book.lang : lang;
   const base = `/${lang}/read/${data.book.slug}`;
 
@@ -92,7 +94,27 @@ async function Chapter({
       initialRatio={data.scroll_ratio}
       initialFontSize={(prefs.data?.font_size as FontSize) ?? "md"}
       initialTheme={(prefs.data?.theme as Theme) ?? "system"}
+      initialLayout={(prefs.data?.layout as Layout) ?? "auto"}
       labels={dict.reader}
+      sidebar={
+        <nav aria-label={dict.reader.contents} lang={bookLang} dir={dir(bookLang)}>
+          <p className="mb-3 font-heading text-sm text-muted">{dict.reader.contents}</p>
+          <ol className="flex flex-col gap-1 text-sm">
+            {chapters.map((item) => (
+              <li key={item.position}>
+                <Link
+                  prefetch={false}
+                  href={`${base}/${item.position}`}
+                  aria-current={item.position === data.chapter.position ? "page" : undefined}
+                  className="block rounded-lg px-3 py-2 leading-relaxed hover:bg-surface aria-[current=page]:bg-surface aria-[current=page]:font-semibold aria-[current=page]:text-accent"
+                >
+                  {item.title}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      }
       header={
         <Link href={base} className="truncate font-heading text-sm text-accent">
           {dict.reader.contents}
@@ -102,7 +124,7 @@ async function Chapter({
       <article
         lang={bookLang}
         dir={dir(bookLang)}
-        className="reader-text mx-auto max-w-2xl px-5 py-8 select-none"
+        className="reader-text py-8 select-none"
       >
         <p className="mb-2 font-heading text-sm text-muted">{data.book.title}</p>
         <h1 className="mb-8 font-heading text-[1.4em] leading-snug font-bold">
@@ -111,7 +133,7 @@ async function Chapter({
         <BookMarkdown body={data.chapter.body} figures={figures} />
       </article>
 
-      <nav className="mx-auto flex max-w-2xl justify-between gap-3 px-5 pb-16">
+      <nav className="reader-nav flex justify-between gap-3 pb-16">
         {data.chapter.position > 1 ? (
           <Link
             prefetch={false}
