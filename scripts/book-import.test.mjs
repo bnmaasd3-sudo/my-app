@@ -92,7 +92,7 @@ describe("toSql", () => {
     await db.exec("rollback");
     const count = await db.query("select count(*)::int as n from public.chapters");
     expect(count.rows[0].n).toBe(2);
-  });
+  }, 30_000); // PGlite starts a whole Postgres; allow for a busy machine.
 
   it("rejects unsafe slugs", () => {
     expect(() => toSql({ slug: "x'; drop", title: "t", lang: "ar" }, [])).toThrow(/Invalid slug/);
