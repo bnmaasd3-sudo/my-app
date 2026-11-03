@@ -35,7 +35,8 @@ export type SallaPanel = {
 export type TestResultRow = {
   key: string;
   user_id: string | null;
-  result: { code?: string | null; status?: string | null; name?: string } | null;
+  status: string | null;
+  name: string | null;
   updated_at: string;
 };
 
@@ -259,15 +260,12 @@ function TestResultsSection({
           {tests.map((row) => (
             <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
               <span className="flex min-w-0 flex-col">
-                <span className="font-medium">{row.result?.name || "-"}</span>
+                <span className="font-medium">{row.name || "-"}</span>
                 <span dir="ltr" className="truncate text-start text-xs text-muted">
                   {(row.user_id && emails.get(row.user_id)) || row.key}
                 </span>
               </span>
-              <span dir="ltr" className="font-mono">
-                {row.result?.code ?? "-"}
-              </span>
-              <span>{statusLabel(row.result?.status)}</span>
+              <span>{statusLabel(row.status)}</span>
               <span className="text-muted">{when.format(new Date(row.updated_at))}</span>
             </li>
           ))}

@@ -4,6 +4,7 @@
 /* eslint-disable */
 // @ts-nocheck
 export function startTestEngine(ENV, DATA) {
+let STOPPED = false;
 
 "use strict";
 /* ===================== data (filled by build.py) ===================== */
@@ -42,7 +43,7 @@ function blank(){return {days:null,state:"normal",version:null,gender:null,age:n
 const SUB_DEFAULT=DATA["SUB_DEFAULT"];
 const HASH0=(function(){try{return decodeURIComponent(location.hash||"");}catch(e){return location.hash||"";}})();
 let PATH_DEFAULT=(HASH0.indexOf("متفرع")>=0||HASH0.indexOf("branch")>=0)?"branch":(HASH0.indexOf("نمطي")>=0||HASH0.indexOf("typed")>=0)?"typed":"classic"; /* v24: «نمطي» = stability and coat asked in the words of the type */
-function $(id){return document.getElementById(id);}
+function $(id){return STOPPED?document.createElement("div"):document.getElementById(id);}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function T(key,st){const u=UI[key];const g=(st||S)&&(st||S).gender;return typeof u==="string"?u:(g==="f"?u.f:u.m);}
@@ -1436,6 +1437,7 @@ if (typeof ENV.ready === "function") {
   });
 }
 return () => {
+  STOPPED = true;
   try { if (timerId) clearInterval(timerId); } catch (e) {}
   try { if (typeof saveWait === "number") clearTimeout(saveWait); } catch (e) {}
   try { if (resultsUnsub) resultsUnsub(); } catch (e) {}

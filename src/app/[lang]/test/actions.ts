@@ -72,14 +72,21 @@ export async function setTestDoc(path: string, value: unknown, summary: unknown)
   return error ? denied(error) : { ok: true };
 }
 
+const PAGE = 200;
+
 /** Every attempt, for the owner's results list. Others get only their own row back. */
 export async function listTestResults(): Promise<ListResult> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("test_results")
-    .select("key, answers")
-    .order("updated_at", { ascending: false })
-    .limit(500);
-  if (error) return denied(error);
-  return { ok: true, rows: (data ?? []) as { key: string; answers: Doc }[] };
+  const rows: { key: string; answers: Doc }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("test_results")
+      .select("key, answers")
+      .order("key")
+      .range(from, from + PAGE - 1);
+    if (error) return denied(error);
+    rows.push(...((data ?? []) as { key: string; answers: Doc }[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return { ok: true, rows };
 }

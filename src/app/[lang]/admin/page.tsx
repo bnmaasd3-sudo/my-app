@@ -41,7 +41,7 @@ async function Panel({ lang, dict }: { lang: Locale; dict: Dictionary }) {
     supabase.rpc("admin_salla"),
     supabase
       .from("test_results")
-      .select("key, user_id, result, updated_at")
+      .select("key, user_id, status:answers->>status, name:answers->>name, updated_at")
       .order("updated_at", { ascending: false })
       .limit(30),
   ]);

@@ -31,6 +31,9 @@ class StoreError extends Error {
  * database: doc(path).get()/set() and collection("results").onSnapshot().
  */
 function databaseFor(summarize: () => Summarize | null) {
+  // The test expects a live results list; it is fetched again after every save and every half minute.
+  const listeners = new Set<() => void>();
+  const refreshAll = () => listeners.forEach((refresh) => refresh());
   return {
     doc(path: string) {
       return {
@@ -42,6 +45,7 @@ function databaseFor(summarize: () => Summarize | null) {
         async set(value: Doc) {
           const result = await setTestDoc(path, value, summarize()?.(value) ?? null);
           if (!result.ok) throw new StoreError(result.code);
+          if (path.startsWith("results/")) refreshAll();
         },
       };
     },
@@ -49,15 +53,21 @@ function databaseFor(summarize: () => Summarize | null) {
       return {
         onSnapshot(onData: (snap: unknown) => void, onError?: (error: unknown) => void) {
           let live = true;
-          listTestResults().then((result) => {
-            if (!live) return;
-            if (!result.ok) return onError?.(new StoreError(result.code));
-            onData({
-              docs: result.rows.map((row) => ({ id: row.key, exists: true, data: () => row.answers })),
-            });
-          }, onError);
+          const refresh = () =>
+            listTestResults().then((result) => {
+              if (!live) return;
+              if (!result.ok) return onError?.(new StoreError(result.code));
+              onData({
+                docs: result.rows.map((row) => ({ id: row.key, exists: true, data: () => row.answers })),
+              });
+            }, onError);
+          listeners.add(refresh);
+          const timer = setInterval(refresh, 30_000);
+          refresh();
           return () => {
             live = false;
+            listeners.delete(refresh);
+            clearInterval(timer);
           };
         },
       };

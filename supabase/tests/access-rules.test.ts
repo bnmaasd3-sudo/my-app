@@ -609,8 +609,37 @@ describe("type test results", () => {
     );
   });
 
+  it("closes a finished attempt: the reader cannot restart or change their own result", async () => {
+    const finished = { status: "done", path: "branch", answers: [0, 1], br: { ans: { q1: 0 }, order: ["q1"] } };
+    await save(INFJ_READER, INFJ_READER, finished);
+    await expect(save(INFJ_READER, INFJ_READER, { ...finished, status: "open" })).rejects.toThrow("test_closed");
+    await expect(save(INFJ_READER, INFJ_READER, { ...finished, answers: [3, 3] })).rejects.toThrow("test_closed");
+    await expect(
+      save(INFJ_READER, INFJ_READER, { ...finished, br: { ...finished.br, ans: { q1: 2 } } }),
+    ).rejects.toThrow("test_closed");
+    // Describing someone else after one's own result is part of the test.
+    await save(INFJ_READER, INFJ_READER, { ...finished, br: { ...finished.br, obs: { og: "f", ans: { o1: 1 } } } });
+  });
+
+  it("lets an attempt that only described someone else go on to the reader's own test", async () => {
+    await save(INFJ_READER, INFJ_READER, { status: "done", mode: "obs", br: { obs: { done: true } } });
+    await save(INFJ_READER, INFJ_READER, { status: "open", mode: null, phase: "welcome", br: { arch: [{}] } });
+  });
+
+  it("lets a suspended reader read their result but not change it", async () => {
+    await expect(save(INACTIVE_READER, INACTIVE_READER, { status: "open" })).rejects.toThrow(/row-level security/);
+    await as(
+      "service_role",
+      null,
+      `insert into public.test_results (key, user_id, answers) values ($1, $2, '{"status":"done"}')`,
+      [INACTIVE_READER, INACTIVE_READER],
+    );
+    const rows = await as("authenticated", INACTIVE_READER, `select key from public.test_results`);
+    expect(rows).toHaveLength(1);
+  });
+
   it("lets the owner read every attempt and save trials and reopened attempts", async () => {
-    await save(INFJ_READER, INFJ_READER, { status: "done" });
+    await save(INFJ_READER, INFJ_READER, { status: "done", answers: [1] });
     await save(ESFJ_READER, ESFJ_READER, { status: "open" });
     const rows = await as<{ key: string }>("authenticated", OWNER, `select key from public.test_results order by key`);
     expect(rows.map((r) => r.key)).toEqual([INFJ_READER, ESFJ_READER].sort());
