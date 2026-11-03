@@ -1,10 +1,10 @@
 {
   "app": {
-    "name": "Qari",
+    "name": "Sajiyya",
     "tagline": "Your book, for your eyes only"
   },
   "meta": {
-    "title": "Qari — your book, for your eyes only",
+    "title": "Sajiyya — your book, for your eyes only",
     "description": "Read the book you bought after signing in, chapter by chapter, with no files to download or forward."
   },
   "nav": {
@@ -17,7 +17,7 @@
     "title": "Your book, for your eyes only",
     "lead": "Read the book you bought after signing in, chapter by chapter, with no files to download or forward.",
     "signIn": "Sign in",
-    "featuresTitle": "What you'll find in Qari",
+    "featuresTitle": "What you'll find in Sajiyya",
     "features": {
       "login": {
         "title": "No password to remember",
@@ -38,7 +38,7 @@
     "lead": "Enter the email you bought the book with and we'll send you a sign-in code.",
     "emailLabel": "Email",
     "sendCode": "Send code",
-    "codeSent": "If this email has a Qari account, we've sent it a message. Open the link in it, or type the code if there is one. Check your spam folder too.",
+    "codeSent": "If this email has a Sajiyya account, we've sent it a message. Open the link in it, or type the code if there is one. Check your spam folder too.",
     "codeLabel": "Sign-in code",
     "verify": "Sign in",
     "changeEmail": "Use a different email",
@@ -159,7 +159,7 @@
     }
   },
   "footer": {
-    "rights": "Qari"
+    "rights": "Sajiyya"
   },
   "test": {
     "title": "Type test",

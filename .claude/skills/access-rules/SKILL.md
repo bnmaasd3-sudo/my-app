@@ -1,6 +1,6 @@
 ---
 name: access-rules
-description: صلاحيات «قارئ» — من يرى ماذا، وقواعد Supabase (RLS)، وقيد الجهازين، والاختبار الثابت لرفض فتح كتاب غير مملوك. Use for any work on accounts, sign-in, sessions, permissions, RLS policies, devices, or anything that decides who can read a chapter.
+description: صلاحيات «سَجيّة» — من يرى ماذا، وقواعد Supabase (RLS)، وقيد الجهازين، والاختبار الثابت لرفض فتح كتاب غير مملوك. Use for any work on accounts, sign-in, sessions, permissions, RLS policies, devices, or anything that decides who can read a chapter.
 ---
 
 # الصلاحيات

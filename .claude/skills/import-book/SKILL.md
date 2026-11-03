@@ -1,6 +1,6 @@
 ---
 name: import-book
-description: إدخال كتاب جديد إلى «قارئ» — تقسيمه فصولًا، وفحص سطر الدعم وغياب الأرقام، ورفعه إلى قاعدة Supabase. Use when importing, adding or uploading a book or its chapters, or when the user runs /add-book.
+description: إدخال كتاب جديد إلى «سَجيّة» — تقسيمه فصولًا، وفحص سطر الدعم وغياب الأرقام، ورفعه إلى قاعدة Supabase. Use when importing, adding or uploading a book or its chapters, or when the user runs /add-book.
 ---
 
 # إدخال كتاب

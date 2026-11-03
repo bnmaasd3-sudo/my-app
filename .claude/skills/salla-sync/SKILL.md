@@ -1,6 +1,6 @@
 ---
 name: salla-sync
-description: ربط متجر سلة بـ «قارئ» — استقبال إشعار الطلب (webhook)، والتحقق من توقيعه، ومطابقة بريد المشتري، وفتح الكتاب، والتعامل مع الاسترجاع. Use for any work on the Salla integration, purchase webhooks, orders, refunds, or automatic book unlocking.
+description: ربط متجر سلة بـ «سَجيّة» — استقبال إشعار الطلب (webhook)، والتحقق من توقيعه، ومطابقة بريد المشتري، وفتح الكتاب، والتعامل مع الاسترجاع. Use for any work on the Salla integration, purchase webhooks, orders, refunds, or automatic book unlocking.
 ---
 
 # ربط سلة

@@ -1,6 +1,6 @@
 ---
 name: reader-ui
-description: قواعد شاشات القراءة في «قارئ» — الخطوط والاتجاه والألوان وأحجام الخط والوضع الليلي وسطر اسم القارئ، والاختبار على عرض هاتف رخيص. Use for any work on reading screens, the chapter view, typography, night mode, the reader's name line, icons, or layout of the app.
+description: قواعد شاشات القراءة في «سَجيّة» — الخطوط والاتجاه والألوان وأحجام الخط والوضع الليلي وسطر اسم القارئ، والاختبار على عرض هاتف رخيص. Use for any work on reading screens, the chapter view, typography, night mode, the reader's name line, icons, or layout of the app.
 ---
 
 # شاشات القراءة
