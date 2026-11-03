@@ -15,7 +15,7 @@ description: إصدار نسخة أندرويد من «سَجيّة» بـ Capac
 
 ## التغليف
 - التطبيق موقع بخادم (تسجيل دخول وفصول من القاعدة)، فيُغلَّف بتوجيه Capacitor إلى الموقع المنشور: `server.url` في `capacitor.config.ts` يشير إلى رابط الإنتاج على Vercel.
-- `appId`: `app.qari.reader` (لا يتغير بعد أول رفع للمتجر). `appName`: `قارئ`.
+- `appId`: `app.qari.reader` (لا يتغير بعد أول رفع للمتجر). `appName`: `سَجيّة` (والاسم بالإنجليزية Sajiyya في `values-en/strings.xml`).
 - الحزم: `@capacitor/core` و`@capacitor/cli` و`@capacitor/android`، ثم `npx cap add android` و`npx cap sync android`.
 
 ## منع لقطة الشاشة (FLAG_SECURE)

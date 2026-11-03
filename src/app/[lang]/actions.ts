@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { DEVICE_COOKIE } from "@/lib/device";
+import { isFontSize, isLayout, isTheme } from "@/lib/reader-prefs";
 import { createClient } from "@/lib/supabase/server";
 import {
   isValidCode,
@@ -102,12 +103,8 @@ export async function saveProgress(bookSlug: string, position: number, scrollRat
   });
 }
 
-const FONT_SIZES = ["sm", "md", "lg"];
-const THEMES = ["system", "light", "dark"];
-const LAYOUTS = ["auto", "mobile", "laptop"];
-
 export async function savePrefs(fontSize: string, theme: string, layout: string) {
-  if (!FONT_SIZES.includes(fontSize) || !THEMES.includes(theme) || !LAYOUTS.includes(layout)) return;
+  if (!isFontSize(fontSize) || !isTheme(theme) || !isLayout(layout)) return;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const readerId = data?.claims?.sub;
