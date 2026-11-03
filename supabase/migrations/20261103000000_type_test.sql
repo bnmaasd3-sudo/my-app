@@ -74,7 +74,7 @@ set search_path = ''
 as $$
 declare
   v_locked text[] := array[
-    'status', 'answers', 'answers2', 'version', 'path', 'openedAt', 'submittedAt',
+    'status', 'mode', 'answers', 'answers2', 'version', 'path', 'openedAt', 'submittedAt',
     'follow', 'cards', 'cardSets'
   ];
   v_field text;

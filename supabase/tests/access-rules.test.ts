@@ -614,6 +614,8 @@ describe("type test results", () => {
     await save(INFJ_READER, INFJ_READER, finished);
     await expect(save(INFJ_READER, INFJ_READER, { ...finished, status: "open" })).rejects.toThrow("test_closed");
     await expect(save(INFJ_READER, INFJ_READER, { ...finished, answers: [3, 3] })).rejects.toThrow("test_closed");
+    // Switching a finished attempt to "describing someone else" would unlock it.
+    await expect(save(INFJ_READER, INFJ_READER, { ...finished, mode: "obs" })).rejects.toThrow("test_closed");
     await expect(
       save(INFJ_READER, INFJ_READER, { ...finished, br: { ...finished.br, ans: { q1: 2 } } }),
     ).rejects.toThrow("test_closed");

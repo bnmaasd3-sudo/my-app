@@ -26,6 +26,7 @@ function saveLocal(){ localStorage.setItem("ikhtibar_attempt","x"); }
 function loadLocal(){ return localStorage.getItem("ikhtibar_attempt"); }
 function blank(){ return {}; }
 function brResultOf(st){ return {code:"X"}; }
+function decodeCode(s){ return JSON.parse(s); }
 let timerId=null, saveWait=null, resultsUnsub=null;
 `;
 
@@ -57,6 +58,11 @@ ${JOINTS}`),
   it("never treats code as data", () => {
     const { files } = splitTest(page(`const A={x:compute()};const B=[1,...rest];const C={[k]:1};const D=\`a\${b}\`;${JOINTS}`));
     expect(Object.values(files).flatMap((f) => Object.keys(f))).toEqual([]);
+  });
+
+  it("cleans a pasted result code before it is shown", () => {
+    const { engine } = splitTest(page(JOINTS));
+    expect(engine).toContain("function decodeCode(s){const st=decodeCode0(s);return st&&ENV.clean?ENV.clean(st):st;}");
   });
 
   it("stops drawing once the app page is gone", () => {

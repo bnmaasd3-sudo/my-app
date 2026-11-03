@@ -3,6 +3,7 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { neutralizeMarkup } from "@/lib/neutralize";
 import { getTestDoc, listTestResults, setTestDoc } from "./actions";
 import "./test-engine.css";
 
@@ -114,6 +115,7 @@ export function TestEngineHost({ userId, isOwner, labels, fixture }: Props) {
         const db = fixture ? emptyDatabase : databaseFor(() => summarizeRef.current);
         const env = {
           storageKey: `sajiyya_test_${userId}${isOwner ? "_owner" : ""}`,
+          clean: neutralizeMarkup,
           ready: (api: { summarize: Summarize }) => {
             summarizeRef.current = api.summarize;
           },

@@ -12,6 +12,7 @@
 //     * storage goes through ENV (the app's database) instead of window.claude;
 //     * the local draft key is per account (ENV.storageKey);
 //     * after the cleanup runs, the test stops drawing into the page;
+//     * a pasted result code passes through ENV.clean before it is shown;
 //     * it is exported as startTestEngine(ENV, DATA), hands ENV.ready() a
 //       summarize() that uses the test's own result rules, and returns a cleanup.
 // - The page's stylesheet goes to src/app/[lang]/test/test-engine.css, every
@@ -137,6 +138,13 @@ export function splitTest(html) {
   // The joints with the app (see the header of this file).
   body = replaceExactly(body, "window.claude?.use?.(", "ENV.use(", 2);
   body = replaceExactly(body, '"ikhtibar_attempt"', "ENV.storageKey", 2);
+  // A pasted result code comes from someone else: no markup reaches the screen (ENV.clean).
+  body = replaceExactly(
+    body,
+    "function decodeCode(s){",
+    "function decodeCode(s){const st=decodeCode0(s);return st&&ENV.clean?ENV.clean(st):st;}\nfunction decodeCode0(s){",
+    1,
+  );
   // After the page leaves, a late reply must not draw into whatever page is shown then.
   body = replaceExactly(
     body,

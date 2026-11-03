@@ -1,5 +1,6 @@
 "use server";
 
+import { neutralizeMarkup } from "@/lib/neutralize";
 import { createClient } from "@/lib/supabase/server";
 
 // Storage for the type test. The test keeps documents by path, the way its
@@ -26,6 +27,15 @@ const isDoc = (value: unknown): value is Doc =>
 const denied = (error: { code?: string } | null) =>
   ({ ok: false, code: error?.code === "42501" ? "not_granted" : "failed" }) as const;
 
+/** The signed-in account, to tell a reader's own attempt from anyone else's. */
+async function viewer(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.auth.getClaims();
+  return (data?.claims?.sub as string | undefined) ?? null;
+}
+
+// Someone else's attempt reaches the test's screens only without markup (see neutralize.ts).
+const shown = (key: string, me: string | null, answers: Doc) => (key === me ? answers : neutralizeMarkup(answers));
+
 /** The account a result key belongs to: the reader's own id, or the id of an archived attempt. */
 function ownerOfKey(key: string) {
   const base = key.split("__old_")[0];
@@ -47,7 +57,8 @@ export async function getTestDoc(path: string): Promise<DocResult> {
     .eq("key", match[1])
     .maybeSingle();
   if (error) return denied(error);
-  return { ok: true, exists: Boolean(data), data: data ? (data.answers as Doc) : null };
+  if (!data) return { ok: true, exists: false, data: null };
+  return { ok: true, exists: true, data: shown(match[1], await viewer(supabase), data.answers as Doc) };
 }
 
 export async function setTestDoc(path: string, value: unknown, summary: unknown): Promise<SaveResult> {
@@ -77,6 +88,7 @@ const PAGE = 200;
 /** Every attempt, for the owner's results list. Others get only their own row back. */
 export async function listTestResults(): Promise<ListResult> {
   const supabase = await createClient();
+  const me = await viewer(supabase);
   const rows: { key: string; answers: Doc }[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
@@ -85,7 +97,9 @@ export async function listTestResults(): Promise<ListResult> {
       .order("key")
       .range(from, from + PAGE - 1);
     if (error) return denied(error);
-    rows.push(...((data ?? []) as { key: string; answers: Doc }[]));
+    for (const row of (data ?? []) as { key: string; answers: Doc }[]) {
+      rows.push({ key: row.key, answers: shown(row.key, me, row.answers) });
+    }
     if (!data || data.length < PAGE) break;
   }
   return { ok: true, rows };
