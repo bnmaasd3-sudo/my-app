@@ -150,17 +150,12 @@ function TestCard({ lang, dict }: { lang: Locale; dict: Dictionary }) {
       <Cover icon={<ClipboardCheck size={40} strokeWidth={1.5} />} />
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-heading text-lg leading-snug font-semibold">{dict.library.testTitle}</h3>
-            <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs text-accent">
-              {dict.library.soon}
-            </span>
-          </div>
+          <h3 className="font-heading text-lg leading-snug font-semibold">{dict.library.testTitle}</h3>
           <p className="text-sm leading-relaxed text-muted">{dict.library.testLead}</p>
         </div>
         <Link
           href={`/${lang}/test`}
-          className="mt-auto inline-flex items-center gap-2 self-start rounded-full border border-border px-4 py-2.5 text-sm transition-colors hover:bg-background"
+          className="mt-auto inline-flex items-center gap-2 self-start rounded-full bg-accent px-4 py-2.5 font-heading text-sm text-accent-foreground transition-opacity hover:opacity-90"
         >
           {dict.library.testOpen}
           <ArrowLeft size={16} aria-hidden className="ltr:-scale-x-100" />

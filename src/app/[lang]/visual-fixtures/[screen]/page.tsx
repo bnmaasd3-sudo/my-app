@@ -5,9 +5,12 @@ import type { Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { isLayout } from "@/lib/reader-prefs";
+import { TEST_DATA } from "@/lib/test-data";
 import { LibraryFrame, LibraryShelves } from "../../library/library-view";
 import { ContentsFrame, ContentsView } from "../../read/[book]/contents-view";
 import { ChapterView } from "../../read/chapter-view";
+import { TestEngineHost } from "../../test/test-engine-host";
+import { TestFrame } from "../../test/test-view";
 import { books, chapters, contents, figures, opened } from "../fixtures";
 
 /**
@@ -66,6 +69,20 @@ async function Screen({
           figures={figures}
           prefs={{ layout: isLayout(layout) ? layout : "auto" }}
         />
+      );
+    case "test":
+      // The real test with its real data, saving nothing.
+      return (
+        <TestFrame lang={lang} dict={dict}>
+          <TestEngineHost userId="visual-check" isOwner={false} labels={dict.test} fixture={{ data: TEST_DATA }} />
+        </TestFrame>
+      );
+    case "test-owner":
+      // The owner's side of the test (results list, trials, path choice), with no results.
+      return (
+        <TestFrame lang={lang} dict={dict}>
+          <TestEngineHost userId="visual-check" isOwner labels={dict.test} fixture={{ data: TEST_DATA }} />
+        </TestFrame>
       );
     default:
       notFound();

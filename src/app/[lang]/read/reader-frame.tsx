@@ -157,6 +157,7 @@ export function ReaderFrame({
       className="min-h-dvh bg-background text-foreground"
       onContextMenu={(event) => event.preventDefault()}
       onCopy={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
     >
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="reader-bar flex h-14 items-center gap-1">

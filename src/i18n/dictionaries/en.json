@@ -63,9 +63,8 @@
     "notStarted": "Not started yet",
     "tools": "Tests",
     "testTitle": "Type test",
-    "testLead": "A short test to help you find your type, before or after reading.",
-    "testOpen": "Open the test",
-    "soon": "Coming soon"
+    "testLead": "Short questions, then cards, then the letters of your type. No right or wrong answers.",
+    "testOpen": "Start the test"
   },
   "reader": {
     "contents": "Contents",
@@ -156,15 +155,27 @@
       "events": "Latest Salla notifications",
       "noEvents": "No notifications yet.",
       "webhook": "Webhook URL for Salla:"
-    }
+    },
+    "testResults": "Type test results",
+    "noTestResults": "Nobody has started the test yet.",
+    "openTestResults": "Open results and details",
+    "testStatus": {
+      "done": "Complete",
+      "expired": "Time ran out",
+      "open": "In progress"
+    },
+    "testPanelLead": "Readers and their results, each result in detail, a trial run of the test, and the path choice. The test panel itself is in Arabic, as designed.",
+    "backToAdmin": "Back to the owner panel"
   },
   "footer": {
     "rights": "Sajiyya"
   },
   "test": {
     "title": "Type test",
-    "soonTitle": "Coming soon",
-    "soonBody": "We are preparing the test, and it will appear on this page when it is ready. You will find its link in your library.",
-    "back": "Back to my library"
+    "back": "Back to my library",
+    "lead": "Answer as you are when nobody asks anything of you. Your answers are saved to your account as you go. The test itself is in Arabic.",
+    "timeLeft": "Time left since you opened it",
+    "loading": "Loading the test…",
+    "loadError": "The test could not load right now. Refresh the page in a moment."
   }
 }

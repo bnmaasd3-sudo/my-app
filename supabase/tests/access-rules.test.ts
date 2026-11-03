@@ -105,7 +105,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await db.exec(`reset role`);
   await db.exec(`
-    truncate public.reading_log, public.reading_state, public.reader_prefs, public.devices,
+    truncate public.test_results, public.test_settings,
+      public.reading_log, public.reading_state, public.reader_prefs, public.devices,
       public.salla_events, public.salla_orders, public.salla_products,
       public.pending_entitlements, public.invites, public.entitlements, public.chapters, public.books, public.readers, public.admins,
       auth.users cascade;
@@ -531,5 +532,117 @@ describe("salla purchases", () => {
       `select public.admin_salla() as data`,
     );
     expect(data.products).toEqual([expect.objectContaining({ sku: "SKU-INFJ", book: "infj-t-h-reader" })]);
+  });
+});
+
+describe("type test results", () => {
+  const save = (userId: string, key: string, answers: object) =>
+    as(
+      "authenticated",
+      userId,
+      `insert into public.test_results (key, user_id, answers) values ($1, $2, $3)
+       on conflict (key) do update set answers = excluded.answers`,
+      [key, userId, JSON.stringify(answers)],
+    );
+
+  it("lets a reader save and read back their own attempt", async () => {
+    await save(INFJ_READER, INFJ_READER, { status: "open", answers: [0] });
+    await save(INFJ_READER, INFJ_READER, { status: "done", answers: [0, 1] });
+    const rows = await as<{ answers: { status: string } }>(
+      "authenticated",
+      INFJ_READER,
+      `select answers from public.test_results`,
+    );
+    expect(rows.map((r) => r.answers.status)).toEqual(["done"]);
+  });
+
+  it("never shows a reader someone else's attempt", async () => {
+    await save(ESFJ_READER, ESFJ_READER, { status: "done", name: "secret" });
+    expect(await as("authenticated", INFJ_READER, `select * from public.test_results`)).toEqual([]);
+    await expect(as("anon", null, `select * from public.test_results`)).rejects.toThrow(/permission denied/);
+  });
+
+  it("refuses a reader writing another account's attempt or another key", async () => {
+    await expect(save(INFJ_READER, ESFJ_READER, { status: "done" })).rejects.toThrow(/row-level security/);
+    await expect(
+      as(
+        "authenticated",
+        INFJ_READER,
+        `insert into public.test_results (key, user_id, answers) values ('trial_1', $1, '{}')`,
+        [INFJ_READER],
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("does not let a reader overwrite someone else's attempt", async () => {
+    await save(ESFJ_READER, ESFJ_READER, { status: "done" });
+    const updated = await as(
+      "authenticated",
+      INFJ_READER,
+      `update public.test_results set answers = '{"status":"open"}' where key = $1 returning key`,
+      [ESFJ_READER],
+    );
+    expect(updated).toEqual([]);
+  });
+
+  it("keeps a reader's row on their own key and account", async () => {
+    await save(INFJ_READER, INFJ_READER, { status: "open" });
+    await as(
+      "authenticated",
+      INFJ_READER,
+      `update public.test_results set created_at = '2000-01-01' where key = $1`,
+      [INFJ_READER],
+    );
+    const [row] = await as<{ created_at: Date }>(
+      "service_role",
+      null,
+      `select created_at from public.test_results where key = $1`,
+      [INFJ_READER],
+    );
+    expect(new Date(row.created_at).getFullYear()).toBeGreaterThan(2000);
+  });
+
+  it("does not let a reader delete their attempt", async () => {
+    await save(INFJ_READER, INFJ_READER, { status: "done" });
+    await expect(as("authenticated", INFJ_READER, `delete from public.test_results`)).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("lets the owner read every attempt and save trials and reopened attempts", async () => {
+    await save(INFJ_READER, INFJ_READER, { status: "done" });
+    await save(ESFJ_READER, ESFJ_READER, { status: "open" });
+    const rows = await as<{ key: string }>("authenticated", OWNER, `select key from public.test_results order by key`);
+    expect(rows.map((r) => r.key)).toEqual([INFJ_READER, ESFJ_READER].sort());
+    await as(
+      "authenticated",
+      OWNER,
+      `insert into public.test_results (key, answers) values ('trial_1', '{"trial":true}')`,
+    );
+    await as(
+      "authenticated",
+      OWNER,
+      `update public.test_results set answers = '{"reopened":1}' where key = $1`,
+      [INFJ_READER],
+    );
+    const [reopened] = await as<{ answers: { reopened: number }; user_id: string }>(
+      "authenticated",
+      INFJ_READER,
+      `select answers, user_id from public.test_results`,
+    );
+    expect(reopened).toEqual({ answers: { reopened: 1 }, user_id: INFJ_READER });
+  });
+
+  it("lets only the owner choose the test path, and every signed-in reader read it", async () => {
+    await expect(
+      as("authenticated", INFJ_READER, `insert into public.test_settings (path) values ('branch')`),
+    ).rejects.toThrow(/row-level security/);
+    await as("authenticated", OWNER, `insert into public.test_settings (path) values ('branch')`);
+    const rows = await as<{ path: string }>("authenticated", INFJ_READER, `select path from public.test_settings`);
+    expect(rows).toEqual([{ path: "branch" }]);
+    await expect(
+      as("authenticated", OWNER, `insert into public.test_settings (id, path) values (true, 'nonsense')`),
+    ).rejects.toThrow(/check constraint|duplicate key/);
+    await expect(as("anon", null, `select * from public.test_settings`)).rejects.toThrow(/permission denied/);
   });
 });

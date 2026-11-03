@@ -1,0 +1,130 @@
+/* Generated from the type test page's own stylesheet (scripts/extract-test.mjs
+   keeps the test; this file keeps its look): every rule is scoped to
+   .test-engine, and its colours come from the app's tokens so it follows the
+   app's day and night themes. */
+.test-engine {
+  /* --surface, --muted and --accent are the app's own names and are inherited as they are. */
+  --bg: var(--background);
+  --fg: var(--foreground);
+  --line: var(--border);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --warn: #9a5b00;
+  --warn-soft: #fbebd2;
+  --ok: #2c6e35;
+  --ok-soft: #e0f0e2;
+  --bad: #a33a2e;
+  --bad-soft: #f7e0dc;
+  --display: var(--font-kufi), "Segoe UI", Tahoma, sans-serif;
+  --body: var(--font-naskh), "Traditional Arabic", serif;
+  --code: ui-monospace, Menlo, monospace;
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--fg);
+}
+@media (prefers-color-scheme: dark) {
+  .test-engine {
+    --warn: #e6a84b;
+    --warn-soft: #3a2b12;
+    --ok: #7cc487;
+    --ok-soft: #173020;
+    --bad: #ee8d80;
+    --bad-soft: #3d1f1b;
+  }
+}
+.test-engine .wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:16px 64px;display:grid;gap:18px}
+.test-engine h1,.test-engine h2,.test-engine h3{font-family:var(--display);line-height:1.5;text-wrap:balance;margin:0}
+.test-engine h1{font-size:1.5rem}
+.test-engine h2{font-size:1.15rem}
+.test-engine h3{font-size:1rem}
+.test-engine p{margin:0}
+.test-engine .note{font-size:.95rem;color:var(--muted)}
+.test-engine .code{font-family:var(--code);direction:ltr;unicode-bidi:isolate}
+.test-engine .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px}
+.test-engine .card.accent{border-color:var(--accent);border-width:2px}
+.test-engine .btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 .95rem var(--display);padding:10px 16px;border-radius:10px;cursor:pointer}
+.test-engine .btn.primary{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.test-engine a.btn{text-decoration:none;display:inline-block;text-align:center}
+.test-engine .savebox{display:grid;gap:10px}
+.test-engine .saved{color:var(--ok);background:var(--ok-soft);border-radius:10px;padding:8px 12px;font-weight:700;margin:0}
+.test-engine .btn.sel{border-color:var(--accent);background:var(--accent-soft)}
+.test-engine .btn:hover{border-color:var(--accent)}
+.test-engine .btn[disabled]{opacity:.5;cursor:not-allowed}
+.test-engine button:focus-visible,.test-engine input:focus-visible,.test-engine textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.test-engine input,.test-engine textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px;width:100%;max-width:100%;box-sizing:border-box}
+.test-engine textarea{min-height:64px;resize:vertical}
+.test-engine label{font:600 .9rem var(--display)}
+.test-engine .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.test-engine .timer{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:.9rem}
+.test-engine .timer b{font-family:var(--code);font-size:1.05rem;direction:ltr;unicode-bidi:isolate}
+.test-engine .timer.low b{color:var(--bad)}
+.test-engine .step{font:600 .8rem var(--display);color:var(--accent)}
+.test-engine .qtext{font-weight:700;font-size:1.08rem}
+.test-engine .qhelp{color:var(--muted);font-size:.92rem;line-height:1.85;border-inline-start:3px solid var(--line);padding-inline-start:10px;margin-top:-4px}
+.test-engine .qhelp b{font:600 .8rem var(--display);color:var(--muted)}
+.test-engine .opts{display:grid;gap:10px}
+.test-engine .opt{display:grid;grid-template-columns:auto 1fr;gap:12px;text-align:start;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:12px 14px;cursor:pointer;font:inherit;line-height:1.7}
+.test-engine .opts.many .opt{padding:9px 11px;gap:9px;line-height:1.55;font-size:.95em}
+.test-engine .opt:hover{border-color:var(--accent)}
+.test-engine .opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.test-engine .opt .k{font:700 1.1rem var(--display);color:var(--accent);min-width:1.4em}
+.test-engine .opt .t{min-width:0}
+.test-engine .chip{display:inline-block;font:600 .82rem var(--display);padding:1px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.test-engine .chip.warn{background:var(--warn-soft);color:var(--warn)}
+.test-engine .chip.ok{background:var(--ok-soft);color:var(--ok)}
+.test-engine .chip.bad{background:var(--bad-soft);color:var(--bad)}
+.test-engine .path{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.test-engine .path svg{width:100%;height:auto;display:block}
+.test-engine .path .nd{fill:var(--bg);stroke:var(--line);stroke-width:2}
+.test-engine .path .nd.done{fill:var(--accent);stroke:var(--accent)}
+.test-engine .path .nd.cur{stroke:var(--accent);stroke-dasharray:4 3}
+.test-engine .path .lk{stroke:var(--line);stroke-width:2}
+.test-engine .path .lk.done{stroke:var(--accent)}
+.test-engine .path text{font-family:var(--display);font-size:13px;fill:var(--fg)}
+.test-engine .path text.in{fill:var(--surface);font-weight:700;font-size:14px}
+.test-engine .path text.lab{font-size:12px;font-weight:700;fill:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.test-engine .path .nd.cur{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{stroke-width:4}}}
+.test-engine table.t{border-collapse:collapse;width:100%;font-size:.92rem}
+.test-engine table.t th,.test-engine table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:start;vertical-align:top}
+.test-engine table.t th{font-family:var(--display);font-weight:600;color:var(--muted)}
+.test-engine .cards{display:grid;gap:10px}
+.test-engine .mark{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);display:grid;gap:8px}
+.test-engine .mark .yn{display:flex;gap:8px}
+.test-engine .mark .yn button{flex:1}
+.test-engine .mark.yes{border-color:var(--ok)}
+.test-engine .mark.no{border-color:var(--bad)}
+.test-engine .mark textarea{min-height:44px;font-size:.95rem}
+.test-engine .big{font:600 1.8rem var(--code);direction:ltr;unicode-bidi:isolate;color:var(--accent)}
+.test-engine .letters{display:flex;gap:8px;flex-wrap:wrap;direction:ltr;justify-content:flex-end}
+.test-engine .letters .L{display:grid;justify-items:center;gap:2px;min-width:56px}
+.test-engine .letters .L b{font:700 2rem var(--code);color:var(--accent);line-height:1.1}
+.test-engine .letters .L span{font:500 .72rem var(--display);color:var(--muted);direction:rtl;text-align:center}
+.test-engine .letters .L.faint b{color:var(--muted);opacity:.35}
+.test-engine .letters .L.faint span{opacity:.6}
+.test-engine .res{border-inline-start:3px solid var(--line);padding-inline-start:10px;display:grid;gap:6px}
+.test-engine .list{display:grid;gap:8px}
+.test-engine .item{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface);display:grid;gap:4px;cursor:pointer}
+.test-engine .item:hover{border-color:var(--accent)}
+.test-engine .item .m{font:500 .8rem var(--display);color:var(--muted)}
+.test-engine .codebox{font-family:var(--code);direction:ltr;unicode-bidi:isolate;font-size:.75rem;word-break:break-all;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px;user-select:all}
+.test-engine .hide{display:none}
+.test-engine details.sec{border:1px solid var(--line);border-radius:12px;padding:8px 14px;background:var(--surface)}
+.test-engine details.sec summary{cursor:pointer;font:600 .95rem var(--display)}
+.test-engine .seg{display:flex;gap:8px}
+.test-engine .seg .btn{flex:1}
+.test-engine .faint{color:var(--muted);font-size:.9rem}
+.test-engine .faint .code{font-size:.82rem;padding:0 4px;border:1px solid transparent;border-radius:6px;white-space:nowrap}
+.test-engine .faint .me{color:var(--fg);font-weight:700;background:var(--accent-soft);border-color:var(--accent)}
+.test-engine .lvl{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.test-engine .lvl .ql{font:600 .78rem var(--display);color:var(--muted);flex-basis:100%}
+.test-engine .trow{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line)}
+.test-engine .trow .th{font:600 .85rem var(--code);direction:ltr;unicode-bidi:isolate;min-width:3.2em}
+.test-engine .trow.rme .th{color:var(--fg);font-weight:700}
+.test-engine .trow .cells{display:flex;flex-wrap:wrap;gap:4px 6px}
+
+/* Buttons on the accent take the accent's own text colour. */
+.test-engine .btn.primary { color: var(--accent-foreground); }
+.test-engine .path text.in { fill: var(--accent-foreground); }
+/* Inside the app page, which already has its margins. */
+.test-engine .wrap { padding-inline: 0; padding-block: 0 32px; }
