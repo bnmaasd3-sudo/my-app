@@ -9,29 +9,35 @@
   --border: #e7e0d5;
   --accent: #0f5c5a;
   --accent-foreground: #ffffff;
+  --figure: #ffffff;
+  --scrim: rgb(31 27 22 / 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #14120f;
-    --foreground: #ece6dc;
-    --muted: #a39a8e;
-    --surface: #1d1a16;
-    --border: #2f2a24;
-    --accent: #5fb3ae;
-    --accent-foreground: #0d1716;
+    --background: #1a1714;
+    --foreground: #ebe3d6;
+    --muted: #a69b8c;
+    --surface: #231f1b;
+    --border: #36302a;
+    --accent: #e0b36a;
+    --accent-foreground: #1a1714;
+    --figure: #e8e2d8;
+    --scrim: rgb(0 0 0 / 0.55);
   }
 }
 
 /* The reader's own choice wins over the phone's setting. */
 [data-theme="dark"] {
-  --background: #14120f;
-  --foreground: #ece6dc;
-  --muted: #a39a8e;
-  --surface: #1d1a16;
-  --border: #2f2a24;
-  --accent: #5fb3ae;
-  --accent-foreground: #0d1716;
+  --background: #1a1714;
+  --foreground: #ebe3d6;
+  --muted: #a69b8c;
+  --surface: #231f1b;
+  --border: #36302a;
+  --accent: #e0b36a;
+  --accent-foreground: #1a1714;
+  --figure: #e8e2d8;
+  --scrim: rgb(0 0 0 / 0.55);
 }
 
 @theme inline {
@@ -42,6 +48,8 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-figure: var(--figure);
+  --color-scrim: var(--scrim);
   --font-sans: var(--font-naskh);
   --font-heading: var(--font-kufi);
 }
@@ -51,89 +59,89 @@ body {
   color: var(--foreground);
 }
 
-/* Reading layouts (see .claude/skills/reader-ui). Phone: one column, smaller
-   text, narrow margins. Laptop: a centred column of about seventy characters,
-   larger text, and the chapter list on the start side. "auto" picks by width. */
+/* Reading layouts (see .claude/skills/reader-ui).
+   - The chapter list sits beside the text only from 1024px, and never in the
+     phone layout. Below that it opens as a side panel from the top bar, so the
+     text column always keeps the full width on phones (a forced "laptop"
+     layout on a phone only changes the type scale).
+   - Phone type scale by default; laptop scale for "laptop", and for "auto"
+     from 1024px. Book text never goes below line-height 1.9. */
 .reader-sidebar {
   display: none;
 }
-.reader-bar,
-.reader-text,
-.reader-nav {
+.reader-bar {
+  margin-inline: auto;
+  max-width: 50rem;
+  padding-inline: 0.5rem;
+}
+.reader-column {
   margin-inline: auto;
   max-width: 42rem;
-  padding-inline: 1rem;
+  padding-inline: 1.25rem;
 }
-[data-font="sm"] .reader-text { font-size: 16px; line-height: 1.85; }
-[data-font="md"] .reader-text { font-size: 18px; line-height: 1.9; }
-[data-font="lg"] .reader-text { font-size: 21px; line-height: 2; }
+[data-font="sm"] .reader-text { font-size: 17px; line-height: 1.9; }
+[data-font="md"] .reader-text { font-size: 19px; line-height: 1.95; }
+[data-font="lg"] .reader-text { font-size: 22px; line-height: 2; }
 
 [data-reader][data-layout="laptop"] {
-  .reader-shell {
-    display: grid;
-    grid-template-columns: 16rem minmax(0, 1fr);
-    gap: 2.5rem;
-    max-width: 78rem;
-    margin-inline: auto;
-    padding-inline: 2rem;
-  }
-  .reader-sidebar {
-    display: block;
-    position: sticky;
-    top: 4.5rem;
-    align-self: start;
-    max-height: calc(100dvh - 6rem);
-    overflow-y: auto;
-    padding-block: 2rem;
-  }
-  .reader-bar {
-    max-width: 78rem;
-    padding-inline: 2rem;
-  }
-  .reader-text {
-    max-width: 36em;
-  }
-  .reader-nav {
-    max-width: 49.5rem;
-  }
+  .reader-column { max-width: 50rem; }
   &[data-font="sm"] .reader-text { font-size: 19px; line-height: 2; }
-  &[data-font="md"] .reader-text { font-size: 22px; line-height: 2.1; }
-  &[data-font="lg"] .reader-text { font-size: 25px; line-height: 2.2; }
+  &[data-font="md"] .reader-text { font-size: 22px; line-height: 2.05; }
+  &[data-font="lg"] .reader-text { font-size: 25px; line-height: 2.1; }
 }
 
 @media (min-width: 1024px) {
   [data-reader][data-layout="auto"] {
+    .reader-column { max-width: 50rem; }
+    &[data-font="sm"] .reader-text { font-size: 19px; line-height: 2; }
+    &[data-font="md"] .reader-text { font-size: 22px; line-height: 2.05; }
+    &[data-font="lg"] .reader-text { font-size: 25px; line-height: 2.1; }
+  }
+
+  /* 17rem list + 2rem gap + 3rem padding leaves the text column over 60%
+     of the width at 1024px. */
+  [data-reader]:not([data-layout="mobile"]) {
     .reader-shell {
       display: grid;
-      grid-template-columns: 16rem minmax(0, 1fr);
-      gap: 2.5rem;
-      max-width: 78rem;
+      grid-template-columns: 17rem minmax(0, 1fr);
+      gap: 2rem;
+      max-width: 84rem;
       margin-inline: auto;
-      padding-inline: 2rem;
+      padding-inline: 1.5rem;
     }
     .reader-sidebar {
       display: block;
       position: sticky;
-      top: 4.5rem;
+      top: 4rem;
       align-self: start;
-      max-height: calc(100dvh - 6rem);
+      max-height: calc(100dvh - 4.5rem);
       overflow-y: auto;
-      padding-block: 2rem;
+      padding-block: 1.5rem;
+      border-inline-end: 1px solid var(--border);
+      padding-inline-end: 1rem;
     }
-    .reader-bar {
-      max-width: 78rem;
-      padding-inline: 2rem;
-    }
-    .reader-text {
-      max-width: 36em;
-    }
-    .reader-nav {
-      max-width: 49.5rem;
-    }
-    &[data-font="sm"] .reader-text { font-size: 19px; line-height: 2; }
-    &[data-font="md"] .reader-text { font-size: 22px; line-height: 2.1; }
-    &[data-font="lg"] .reader-text { font-size: 25px; line-height: 2.2; }
+    .reader-bar { max-width: 84rem; padding-inline: 1.5rem; }
+    .reader-contents-button { display: none; }
   }
+}
+
+.reader-text p {
+  text-wrap: pretty;
+}
+
+/* Panels slide in: the chapter list from the start side, settings from below. */
+.reader-drawer[open] { animation: reader-from-start 220ms ease-out; }
+[dir="rtl"] .reader-drawer[open] { animation-name: reader-from-start-rtl; }
+.reader-sheet[open] { animation: reader-from-below 220ms ease-out; }
+@media (min-width: 640px) {
+  .reader-sheet[open] { animation-name: reader-fade; }
+}
+@keyframes reader-from-start { from { transform: translateX(-100%); } }
+@keyframes reader-from-start-rtl { from { transform: translateX(100%); } }
+@keyframes reader-from-below { from { transform: translateY(100%); } }
+@keyframes reader-fade { from { opacity: 0; transform: translateY(-0.5rem); } }
+@media (prefers-reduced-motion: reduce) {
+  .reader-panel[open] { animation: none; }
 }
 
 [data-reader] .reader-text {

@@ -1,3 +1,4 @@
+import { BookOpen, ListOrdered } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { dir, hasLocale, type Locale } from "@/i18n/config";
@@ -7,6 +8,7 @@ import { readerErrorKind } from "@/lib/reader-errors";
 import { createClient } from "@/lib/supabase/server";
 import { ReaderError } from "../../reader-error";
 import { SiteHeader } from "../../site-header";
+import { ChapterList } from "../chapter-list";
 
 type Contents = {
   book: { slug: string; title: string; lang: string };
@@ -47,36 +49,38 @@ async function Chapters({
   const contents = data as Contents;
   const bookLang = hasLocale(contents.book.lang) ? contents.book.lang : lang;
 
+  const first = contents.position ?? 1;
+
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted">{dict.library.contents}</p>
-        <h1 lang={bookLang} className="font-heading text-3xl font-bold">
+      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 text-sm text-muted">
+          <span className="inline-flex size-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+            <ListOrdered size={18} aria-hidden />
+          </span>
+          {dict.library.contents}
+        </div>
+        <h1 lang={bookLang} dir={dir(bookLang)} className="font-heading text-2xl leading-snug font-bold sm:text-3xl">
           {contents.book.title}
         </h1>
+        <Link
+          prefetch={false}
+          href={`/${lang}/read/${contents.book.slug}/${first}`}
+          className="inline-flex items-center gap-2 self-start rounded-full bg-accent px-5 py-2.5 font-heading text-accent-foreground transition-opacity hover:opacity-90"
+        >
+          <BookOpen size={18} aria-hidden />
+          {contents.position ? dict.library.continue : dict.library.start}
+        </Link>
       </div>
-      <ol lang={bookLang} dir={dir(bookLang)} className="flex flex-col gap-2">
-        {contents.chapters.map((chapter) => {
-          const current = chapter.position === contents.position;
-          return (
-            <li key={chapter.position}>
-              <Link
-                prefetch={false}
-                href={`/${lang}/read/${contents.book.slug}/${chapter.position}`}
-                aria-current={current ? "page" : undefined}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 aria-[current=page]:border-accent"
-              >
-                <span>{chapter.title}</span>
-                {current && (
-                  <span lang={lang} className="shrink-0 text-xs text-accent">
-                    {dict.reader.current}
-                  </span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
+      <ChapterList
+        chapters={contents.chapters}
+        base={`/${lang}/read/${contents.book.slug}`}
+        bookLang={bookLang}
+        lang={lang}
+        marked={contents.position}
+        badge={dict.reader.lastPosition}
+        variant="page"
+      />
     </>
   );
 }

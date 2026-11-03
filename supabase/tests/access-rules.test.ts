@@ -116,7 +116,7 @@ beforeEach(async () => {
 });
 
 describe("open_chapter", () => {
-  it("gives a reader a chapter of their own book, with their name and email for the watermark", async () => {
+  it("gives a reader a chapter of their own book, with their name and email for the chapter footer", async () => {
     const data = await openChapter(INFJ_READER, "infj-t-h-reader", 1);
     expect(data.chapter.body).toBe("INFJ secret text 1");
     expect(data.reader).toEqual({ name: "Noura", email: "infj@example.com" });

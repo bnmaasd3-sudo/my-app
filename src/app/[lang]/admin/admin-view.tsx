@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { revokeDevice, setEntitlement, setReaderActive, setSallaProduct } from "./actions";
 import { AddReaderForm } from "./add-reader-form";
 
@@ -54,8 +55,8 @@ export function AdminView({ data, salla, webhookUrl, lang, dict }: Props) {
             <li key={book.slug} className="rounded-xl border border-border bg-surface px-4 py-3">
               <p className="font-heading">{book.title}</p>
               <p className="text-sm text-muted" dir="ltr">
-                {book.slug} · {t.chaptersCount.replace("{n}", String(book.chapters))} ·{" "}
-                {t.readersCount.replace("{n}", String(book.readers))}
+                {book.slug} · {format(t.chaptersCount, { n: book.chapters })} ·{" "}
+                {format(t.readersCount, { n: book.readers })}
               </p>
             </li>
           ))}

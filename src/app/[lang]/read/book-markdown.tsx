@@ -19,7 +19,7 @@ const components: Components = {
   ul: ({ children }) => <ul className="mb-5 list-disc space-y-2 ps-6">{children}</ul>,
   ol: ({ children }) => <ol className="mb-5 list-decimal space-y-2 ps-6">{children}</ol>,
   blockquote: ({ children }) => (
-    <blockquote className="mb-5 border-s-4 border-border ps-4 text-muted">{children}</blockquote>
+    <blockquote className="my-6 rounded-e-2xl border-s-4 border-accent/50 bg-surface py-3 ps-5 pe-4 text-muted">{children}</blockquote>
   ),
   hr: () => <hr className="my-8 border-border" />,
   table: ({ children }) => (
@@ -47,7 +47,7 @@ export function BookMarkdown({ body, figures }: Props) {
           const name = figureName(typeof src === "string" ? src : null);
           const url = name ? figures[name] : undefined;
           return (
-            <span className="my-6 block">
+            <span className="my-8 block">
               {url && (
                 // Signed, short-lived URLs from private storage; next/image would cache them.
                 // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +56,7 @@ export function BookMarkdown({ body, figures }: Props) {
                   alt={alt ?? ""}
                   loading="lazy"
                   draggable={false}
-                  className="mx-auto max-h-[80vh] w-auto max-w-full rounded-xl"
+                  className="mx-auto max-h-[80vh] w-auto max-w-full rounded-2xl border border-border bg-figure p-2 shadow-sm"
                 />
               )}
               {alt && <span className="mt-2 block text-center text-[0.85em] text-muted">{alt}</span>}

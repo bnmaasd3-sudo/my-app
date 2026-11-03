@@ -29,7 +29,7 @@
       },
       "personal": {
         "title": "Your copy, in your name",
-        "body": "Your name appears faintly on every page, because this copy is yours alone."
+        "body": "Your name appears at the foot of every chapter, so the copy is yours alone."
       }
     }
   },
@@ -56,7 +56,16 @@
     "empty": "There are no books in your library yet. If you just bought one, it can take a few minutes to appear.",
     "start": "Start reading",
     "continue": "Continue reading",
-    "contents": "Contents"
+    "contents": "Contents",
+    "lead": "Your books and the tests open to you.",
+    "books": "My books",
+    "reachedChapter": "You reached chapter {n}",
+    "notStarted": "Not started yet",
+    "tools": "Tests",
+    "testTitle": "Type test",
+    "testLead": "A short test to help you find your type, before or after reading.",
+    "testOpen": "Open the test",
+    "soon": "Coming soon"
   },
   "reader": {
     "contents": "Contents",
@@ -81,7 +90,14 @@
       "mobile": "Phone",
       "laptop": "Laptop"
     },
-    "current": "Where you are"
+    "back": "Back",
+    "close": "Close",
+    "chapterOf": "Chapter {n} of {total}",
+    "progress": "Reading progress in this chapter",
+    "lastPosition": "Last position",
+    "reading": "Reading now",
+    "licensedTo": "Licensed to",
+    "endOfBook": "End of the book"
   },
   "errors": {
     "notEntitled": "This book isn't in your library.",
@@ -99,7 +115,7 @@
     "open": "Owner panel",
     "addReader": "Add a reader",
     "email": "Email",
-    "name": "Name (shown in the watermark)",
+    "name": "Name (shown at the foot of reading pages)",
     "book": "Book",
     "add": "Add and link",
     "adding": "One moment…",
@@ -144,5 +160,11 @@
   },
   "footer": {
     "rights": "Qari"
+  },
+  "test": {
+    "title": "Type test",
+    "soonTitle": "Coming soon",
+    "soonBody": "We are preparing the test, and it will appear on this page when it is ready. You will find its link in your library.",
+    "back": "Back to my library"
   }
 }
