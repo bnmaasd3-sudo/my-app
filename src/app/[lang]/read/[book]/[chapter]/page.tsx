@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -11,8 +12,9 @@ import { readerErrorKind } from "@/lib/reader-errors";
 import { createClient } from "@/lib/supabase/server";
 import { ReaderError } from "../../../reader-error";
 import { BookMarkdown } from "../../book-markdown";
+import { ChapterList } from "../../chapter-list";
 import { ReaderFrame, type FontSize, type Layout, type Theme } from "../../reader-frame";
-import { Watermark } from "../../watermark";
+import { ReaderSignature } from "../../reader-signature";
 
 type OpenedChapter = {
   book: { slug: string; title: string; lang: string };
@@ -87,76 +89,84 @@ async function Chapter({
   const bookLang = hasLocale(data.book.lang) ? data.book.lang : lang;
   const base = `/${lang}/read/${data.book.slug}`;
 
+  const previousHref = data.chapter.position > 1 ? `${base}/${data.chapter.position - 1}` : null;
+  const nextHref = data.chapter.position < data.total ? `${base}/${data.chapter.position + 1}` : null;
+
   return (
     <ReaderFrame
       bookSlug={data.book.slug}
+      bookLang={bookLang}
+      bookDir={dir(bookLang)}
+      chapterTitle={data.chapter.title}
       position={data.chapter.position}
+      total={data.total}
       initialRatio={data.scroll_ratio}
       initialFontSize={(prefs.data?.font_size as FontSize) ?? "md"}
       initialTheme={(prefs.data?.theme as Theme) ?? "system"}
       initialLayout={(prefs.data?.layout as Layout) ?? "auto"}
       labels={dict.reader}
-      sidebar={
-        <nav aria-label={dict.reader.contents} lang={bookLang} dir={dir(bookLang)}>
-          <p className="mb-3 font-heading text-sm text-muted">{dict.reader.contents}</p>
-          <ol className="flex flex-col gap-1 text-sm">
-            {chapters.map((item) => (
-              <li key={item.position}>
-                <Link
-                  prefetch={false}
-                  href={`${base}/${item.position}`}
-                  aria-current={item.position === data.chapter.position ? "page" : undefined}
-                  className="block rounded-lg px-3 py-2 leading-relaxed hover:bg-surface aria-[current=page]:bg-surface aria-[current=page]:font-semibold aria-[current=page]:text-accent"
-                >
-                  {item.title}
-                </Link>
-              </li>
-            ))}
-          </ol>
+      backHref={base}
+      previousHref={previousHref}
+      nextHref={nextHref}
+      contents={
+        <nav aria-label={dict.reader.contents}>
+          <p lang={bookLang} dir={dir(bookLang)} className="mb-3 px-2.5 font-heading text-sm font-semibold">
+            {data.book.title}
+          </p>
+          <ChapterList
+            chapters={chapters}
+            base={base}
+            bookLang={bookLang}
+            lang={lang}
+            marked={data.chapter.position}
+            badge={dict.reader.reading}
+            variant="compact"
+          />
         </nav>
       }
-      header={
-        <Link href={base} className="truncate font-heading text-sm text-accent">
-          {dict.reader.contents}
-        </Link>
-      }
     >
-      <article
-        lang={bookLang}
-        dir={dir(bookLang)}
-        className="reader-text py-8 select-none"
-      >
-        <p className="mb-2 font-heading text-sm text-muted">{data.book.title}</p>
-        <h1 className="mb-8 font-heading text-[1.4em] leading-snug font-bold">
-          {data.chapter.title}
-        </h1>
+      <article lang={bookLang} dir={dir(bookLang)} className="reader-text pt-10 pb-6 select-none">
+        <header className="mb-10 border-b border-border pb-8">
+          <p className="mb-3 font-heading text-sm text-accent">{data.book.title}</p>
+          <h1 className="font-heading text-[1.45em] leading-snug font-bold">{data.chapter.title}</h1>
+        </header>
         <BookMarkdown body={data.chapter.body} figures={figures} />
       </article>
 
-      <nav className="reader-nav flex justify-between gap-3 pb-16">
-        {data.chapter.position > 1 ? (
+      <nav className="grid grid-cols-2 gap-3 pb-10">
+        {previousHref ? (
           <Link
             prefetch={false}
-            href={`${base}/${data.chapter.position - 1}`}
-            className="rounded-full border border-border px-5 py-2.5"
+            href={previousHref}
+            className="flex items-center gap-2 rounded-2xl border border-border px-4 py-3 transition-colors hover:bg-surface"
           >
+            <ChevronLeft size={18} aria-hidden className="shrink-0 rtl:-scale-x-100" />
             {dict.reader.previous}
           </Link>
         ) : (
           <span />
         )}
-        {data.chapter.position < data.total && (
+        {nextHref ? (
           <Link
             prefetch={false}
-            href={`${base}/${data.chapter.position + 1}`}
-            className="rounded-full bg-accent px-5 py-2.5 font-heading text-accent-foreground"
+            href={nextHref}
+            className="flex items-center justify-end gap-2 rounded-2xl bg-accent px-4 py-3 font-heading text-accent-foreground transition-opacity hover:opacity-90"
           >
             {dict.reader.next}
+            <ChevronRight size={18} aria-hidden className="shrink-0 rtl:-scale-x-100" />
           </Link>
+        ) : (
+          <span className="flex items-center justify-end rounded-2xl border border-dashed border-border px-4 py-3 text-muted">
+            {dict.reader.endOfBook}
+          </span>
         )}
       </nav>
 
-      <Watermark name={data.reader.name} email={data.reader.email} />
+      <ReaderSignature
+        label={dict.reader.licensedTo}
+        name={data.reader.name}
+        email={data.reader.email}
+      />
     </ReaderFrame>
   );
 }

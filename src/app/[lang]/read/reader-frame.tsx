@@ -1,7 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Laptop,
+  List,
+  Monitor,
+  MonitorSmartphone,
+  Moon,
+  Settings2,
+  Smartphone,
+  Sun,
+  Type,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import Link from "next/link";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { saveProgress, savePrefs } from "../actions";
 
 export type FontSize = "sm" | "md" | "lg";
@@ -10,22 +36,40 @@ export type Layout = "auto" | "mobile" | "laptop";
 
 type Props = {
   bookSlug: string;
+  /** Language of the book text, for the chapter title in the bar. */
+  bookLang: string;
+  bookDir: "rtl" | "ltr";
+  chapterTitle: string;
   position: number;
+  total: number;
   initialRatio: number;
   initialFontSize: FontSize;
   initialTheme: Theme;
   initialLayout: Layout;
   labels: Dictionary["reader"];
-  header: ReactNode;
-  /** Chapter list, shown beside the text in the laptop layout. */
-  sidebar: ReactNode;
+  backHref: string;
+  previousHref: string | null;
+  nextHref: string | null;
+  /** Chapter list: beside the text on wide screens, in a side panel otherwise. */
+  contents: ReactNode;
   children: ReactNode;
 };
 
 const FONT_SIZES: FontSize[] = ["sm", "md", "lg"];
 const THEMES: Theme[] = ["system", "light", "dark"];
 const LAYOUTS: Layout[] = ["auto", "mobile", "laptop"];
+const THEME_ICONS: Record<Theme, LucideIcon> = { system: Monitor, light: Sun, dark: Moon };
+const LAYOUT_ICONS: Record<Layout, LucideIcon> = {
+  auto: MonitorSmartphone,
+  mobile: Smartphone,
+  laptop: Laptop,
+};
+const FONT_ICON_SIZES: Record<FontSize, number> = { sm: 14, md: 18, lg: 22 };
 const SAVE_DELAY_MS = 1500;
+
+// Arrow icons are drawn for English; Arabic mirrors them, so "back" and
+// "previous" point to the start of the line and "next" to its end.
+const FLIP = "rtl:-scale-x-100";
 
 function scrollRatio() {
   const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -34,14 +78,20 @@ function scrollRatio() {
 
 export function ReaderFrame({
   bookSlug,
+  bookLang,
+  bookDir,
+  chapterTitle,
   position,
+  total,
   initialRatio,
   initialFontSize,
   initialTheme,
   initialLayout,
   labels,
-  header,
-  sidebar,
+  backHref,
+  previousHref,
+  nextHref,
+  contents,
   children,
 }: Props) {
   const [fontSize, setFontSize] = useState(initialFontSize);
@@ -49,9 +99,12 @@ export function ReaderFrame({
   const [layout, setLayout] = useState(initialLayout);
   const [, startTransition] = useTransition();
   const lastSaved = useRef(initialRatio);
+  const contentsDialog = useRef<HTMLDialogElement>(null);
+  const settingsDialog = useRef<HTMLDialogElement>(null);
 
   // Return to where the reader stopped, then save the position as they scroll.
   useEffect(() => {
+    lastSaved.current = initialRatio;
     if (initialRatio > 0) {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       window.scrollTo({ top: initialRatio * max });
@@ -81,8 +134,18 @@ export function ReaderFrame({
     };
   }, [bookSlug, position, initialRatio]);
 
+  // A new chapter closes any open panel.
+  useEffect(() => {
+    contentsDialog.current?.close();
+    settingsDialog.current?.close();
+  }, [position]);
+
   const update = (next: { fontSize?: FontSize; theme?: Theme; layout?: Layout }) => {
-    const prefs = { fontSize: next.fontSize ?? fontSize, theme: next.theme ?? theme, layout: next.layout ?? layout };
+    const prefs = {
+      fontSize: next.fontSize ?? fontSize,
+      theme: next.theme ?? theme,
+      layout: next.layout ?? layout,
+    };
     setFontSize(prefs.fontSize);
     setTheme(prefs.theme);
     setLayout(prefs.layout);
@@ -99,41 +162,219 @@ export function ReaderFrame({
       onContextMenu={(event) => event.preventDefault()}
       onCopy={(event) => event.preventDefault()}
     >
-      <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-        <div className="reader-bar flex items-center justify-between gap-3 py-3">
-          {header}
-          <details className="relative">
-            <summary className="cursor-pointer list-none rounded-full border border-border px-3 py-1.5 text-sm">
-              {labels.settings}
-            </summary>
-            <div className="absolute end-0 z-40 mt-2 flex w-64 flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-lg">
-              <Choice
-                legend={labels.fontSize}
-                options={FONT_SIZES.map((value) => ({ value, label: labels.fontSizes[value] }))}
-                value={fontSize}
-                onChange={(value) => update({ fontSize: value })}
-              />
-              <Choice
-                legend={labels.theme}
-                options={THEMES.map((value) => ({ value, label: labels.themes[value] }))}
-                value={theme}
-                onChange={(value) => update({ theme: value })}
-              />
-              <Choice
-                legend={labels.layout}
-                options={LAYOUTS.map((value) => ({ value, label: labels.layouts[value] }))}
-                value={layout}
-                onChange={(value) => update({ layout: value })}
-              />
-            </div>
-          </details>
+      <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
+        <div className="reader-bar flex h-14 items-center gap-1">
+          <IconLink href={backHref} label={labels.back}>
+            <ArrowLeft className={FLIP} />
+          </IconLink>
+          <IconButton
+            className="reader-contents-button"
+            label={labels.contents}
+            onClick={() => contentsDialog.current?.showModal()}
+          >
+            <List />
+          </IconButton>
+
+          <div className="flex min-w-0 flex-1 flex-col items-center px-1 text-center">
+            <p
+              lang={bookLang}
+              dir={bookDir}
+              className="w-full truncate font-heading text-sm leading-6 font-semibold"
+            >
+              {chapterTitle}
+            </p>
+            <p className="text-[0.7rem] leading-4 text-muted">
+              {format(labels.chapterOf, { n: position, total })}
+            </p>
+          </div>
+
+          <IconLink href={previousHref} label={labels.previous}>
+            <ChevronLeft className={FLIP} />
+          </IconLink>
+          <IconLink href={nextHref} label={labels.next}>
+            <ChevronRight className={FLIP} />
+          </IconLink>
+          <IconButton label={labels.settings} onClick={() => settingsDialog.current?.showModal()}>
+            <Settings2 />
+          </IconButton>
+        </div>
+        <ProgressBar label={labels.progress} position={position} />
+      </header>
+
+      <div className="reader-shell">
+        <aside className="reader-sidebar">{contents}</aside>
+        <div className="reader-column">{children}</div>
+      </div>
+
+      <Panel
+        ref={contentsDialog}
+        kind="drawer"
+        title={labels.contents}
+        closeLabel={labels.close}
+      >
+        {contents}
+      </Panel>
+
+      <Panel ref={settingsDialog} kind="sheet" title={labels.settings} closeLabel={labels.close}>
+        <div className="flex flex-col gap-6">
+          <Choice
+            legend={labels.fontSize}
+            options={FONT_SIZES.map((value) => ({
+              value,
+              label: labels.fontSizes[value],
+              icon: <Type size={FONT_ICON_SIZES[value]} aria-hidden />,
+            }))}
+            value={fontSize}
+            onChange={(value) => update({ fontSize: value })}
+          />
+          <Choice
+            legend={labels.theme}
+            options={THEMES.map((value) => {
+              const Icon = THEME_ICONS[value];
+              return { value, label: labels.themes[value], icon: <Icon size={18} aria-hidden /> };
+            })}
+            value={theme}
+            onChange={(value) => update({ theme: value })}
+          />
+          <Choice
+            legend={labels.layout}
+            options={LAYOUTS.map((value) => {
+              const Icon = LAYOUT_ICONS[value];
+              return { value, label: labels.layouts[value], icon: <Icon size={18} aria-hidden /> };
+            })}
+            value={layout}
+            onChange={(value) => update({ layout: value })}
+          />
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/** How far through this chapter the reader is. Only this bar re-renders on scroll. */
+function ProgressBar({ label, position }: { label: string; position: number }) {
+  const [percent, setPercent] = useState(0);
+
+  useEffect(() => {
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setPercent(Math.round(scrollRatio() * 100)));
+    };
+    measure();
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [position]);
+
+  return (
+    <div
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      className="h-0.5 w-full bg-border/60"
+    >
+      <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
+    </div>
+  );
+}
+
+const iconClass =
+  "inline-flex size-10 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent [&_svg]:size-5";
+
+function IconLink({ href, label, children }: { href: string | null; label: string; children: ReactNode }) {
+  if (!href) {
+    return (
+      <span aria-disabled className={`${iconClass} opacity-30`} title={label}>
+        {children}
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+  return (
+    <Link prefetch={false} href={href} aria-label={label} title={label} className={iconClass}>
+      {children}
+    </Link>
+  );
+}
+
+function IconButton({
+  label,
+  onClick,
+  className = "",
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button type="button" aria-label={label} title={label} onClick={onClick} className={`${iconClass} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+/**
+ * A modal panel: the chapter list slides in from the start side; the settings
+ * open as a sheet from the bottom on phones and a card on wider screens.
+ * Tapping outside it, a link inside it, or Escape closes it.
+ */
+function Panel({
+  ref,
+  kind,
+  title,
+  closeLabel,
+  children,
+}: {
+  ref: RefObject<HTMLDialogElement | null>;
+  kind: "drawer" | "sheet";
+  title: string;
+  closeLabel: string;
+  children: ReactNode;
+}) {
+  const onClick = (event: MouseEvent<HTMLDialogElement>) => {
+    const target = event.target as Element;
+    if (target === event.currentTarget || target.closest("a")) event.currentTarget.close();
+  };
+
+  const placement =
+    kind === "drawer"
+      ? "reader-drawer inset-y-0 start-0 end-auto h-dvh max-h-none w-[min(22rem,88vw)] border-e"
+      : "reader-sheet inset-x-0 top-auto bottom-0 mx-auto max-h-[85dvh] w-full max-w-lg rounded-t-3xl border-t sm:inset-x-auto sm:top-16 sm:bottom-auto sm:end-4 sm:m-0 sm:w-80 sm:rounded-3xl sm:border";
+
+  return (
+    <dialog
+      ref={ref}
+      aria-label={title}
+      onClick={onClick}
+      className={`reader-panel fixed m-0 max-w-none overflow-hidden border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-scrim backdrop:backdrop-blur-[2px] ${placement}`}
+    >
+      <div className="flex h-full max-h-[inherit] flex-col">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
+          <p className="font-heading font-semibold">{title}</p>
+          <button
+            type="button"
+            aria-label={closeLabel}
+            title={closeLabel}
+            onClick={() => ref.current?.close()}
+            className={iconClass}
+          >
+            <X />
+          </button>
+        </div>
+        <div className={`overflow-y-auto overscroll-contain p-4 ${kind === "sheet" ? "pb-8" : "flex-1"}`}>
+          {children}
         </div>
       </div>
-      <div className="reader-shell">
-        <aside className="reader-sidebar">{sidebar}</aside>
-        <div className="reader-main">{children}</div>
-      </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -144,22 +385,23 @@ function Choice<T extends string>({
   onChange,
 }: {
   legend: string;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; icon: ReactNode }[];
   value: T;
   onChange: (value: T) => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 font-heading text-sm">{legend}</legend>
-      <div className="grid grid-cols-3 gap-1 rounded-full border border-border p-1">
+    <fieldset>
+      <legend className="mb-2 font-heading text-sm text-muted">{legend}</legend>
+      <div className="grid grid-cols-3 gap-2">
         {options.map((option) => (
           <button
             key={option.value}
             type="button"
             aria-pressed={option.value === value}
             onClick={() => onChange(option.value)}
-            className="rounded-full px-2 py-1.5 text-sm aria-pressed:bg-accent aria-pressed:text-accent-foreground"
+            className="flex h-16 flex-col items-center justify-center gap-1 rounded-2xl border border-border text-sm transition-colors hover:bg-background aria-pressed:border-accent aria-pressed:bg-accent/10 aria-pressed:text-accent"
           >
+            {option.icon}
             {option.label}
           </button>
         ))}

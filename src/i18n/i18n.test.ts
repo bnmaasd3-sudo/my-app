@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dir, hasLocale } from "./config";
+import { format } from "./format";
 import ar from "./dictionaries/ar.json";
 import en from "./dictionaries/en.json";
 import { negotiateLocale } from "./negotiate";
@@ -61,5 +62,12 @@ describe("negotiateLocale", () => {
   it("skips unsupported languages and falls back to Arabic", () => {
     expect(negotiateLocale("fr-FR,de;q=0.9,en;q=0.5")).toBe("en");
     expect(negotiateLocale("fr-FR,de;q=0.9")).toBe("ar");
+  });
+});
+
+describe("format", () => {
+  it("fills every placeholder, including repeated ones, and leaves unknown ones", () => {
+    expect(format("الفصل {n} من {total}", { n: 3, total: 33 })).toBe("الفصل 3 من 33");
+    expect(format("{n}/{n} {x}", { n: 2 })).toBe("2/2 {x}");
   });
 });

@@ -1,10 +1,15 @@
+import { BookMarked, History, KeyRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { SiteHeader } from "./site-header";
 
-const featureKeys = ["login", "resume", "personal"] as const;
+const features: { key: "login" | "resume" | "personal"; icon: LucideIcon }[] = [
+  { key: "login", icon: KeyRound },
+  { key: "resume", icon: History },
+  { key: "personal", icon: BookMarked },
+];
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -38,11 +43,14 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
             {dict.home.featuresTitle}
           </h2>
           <ul className="grid gap-3 sm:grid-cols-3">
-            {featureKeys.map((key) => (
+            {features.map(({ key, icon: Icon }) => (
               <li
                 key={key}
                 className="rounded-2xl border border-border bg-surface p-5"
               >
+                <span className="mb-4 inline-flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Icon size={20} aria-hidden />
+                </span>
                 <h3 className="font-heading font-semibold">
                   {dict.home.features[key].title}
                 </h3>
