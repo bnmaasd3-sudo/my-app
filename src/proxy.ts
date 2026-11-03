@@ -9,6 +9,7 @@ const LOCALE = `(${locales.join("|")})`;
 const SESSION_ROUTES = new RegExp(`^/${LOCALE}/(login|library|read|admin|test)(/|$)`);
 const PROTECTED_ROUTES = new RegExp(`^/${LOCALE}/(library|read|admin|test)(/|$)`);
 const LOGIN_ROUTE = new RegExp(`^/${LOCALE}/login/?$`);
+const VISUAL_FIXTURES = new RegExp(`^/${LOCALE}/visual-fixtures(/|$)`);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,6 +19,11 @@ export async function proxy(request: NextRequest) {
     const preferred = negotiateLocale(request.headers.get("accept-language"));
     request.nextUrl.pathname = `/${preferred}${pathname === "/" ? "" : pathname}`;
     return NextResponse.redirect(request.nextUrl);
+  }
+
+  // Made-up screens for the visual check exist only when the server is started for it.
+  if (VISUAL_FIXTURES.test(pathname) && process.env.VISUAL_FIXTURES !== "1") {
+    return new NextResponse(null, { status: 404 });
   }
 
   if (!SESSION_ROUTES.test(pathname)) return;

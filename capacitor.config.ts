@@ -7,7 +7,7 @@ const url = process.env.QARI_URL ?? "https://qari-bnmaasd3-3308.vercel.app";
 
 const config: CapacitorConfig = {
   appId: "app.qari.reader",
-  appName: "قارئ",
+  appName: "سَجيّة",
   webDir: "android-shell",
   server: {
     url,

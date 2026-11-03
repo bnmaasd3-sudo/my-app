@@ -1,6 +1,6 @@
 ---
 name: release-checklist
-description: قائمة الفحص قبل كل نشر لـ «قارئ» — مراجعة الكود والأمان والاختبارات، ثم النشر، ثم التحقق من الرابط. Use before every deploy, merge to main, or release (or when the user runs /deploy).
+description: قائمة الفحص قبل كل نشر لـ «سَجيّة» — مراجعة الكود والأمان والاختبارات، ثم النشر، ثم التحقق من الرابط. Use before every deploy, merge to main, or release (or when the user runs /deploy).
 ---
 
 # قبل كل نشر

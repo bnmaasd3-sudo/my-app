@@ -27,12 +27,11 @@ import {
   type RefObject,
 } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { FONT_SIZES, LAYOUTS, THEMES, type FontSize, type Layout, type Theme } from "@/lib/reader-prefs";
 import { format } from "@/i18n/format";
 import { saveProgress, savePrefs } from "../actions";
 
-export type FontSize = "sm" | "md" | "lg";
-export type Theme = "system" | "light" | "dark";
-export type Layout = "auto" | "mobile" | "laptop";
+export type { FontSize, Layout, Theme } from "@/lib/reader-prefs";
 
 type Props = {
   bookSlug: string;
@@ -55,9 +54,6 @@ type Props = {
   children: ReactNode;
 };
 
-const FONT_SIZES: FontSize[] = ["sm", "md", "lg"];
-const THEMES: Theme[] = ["system", "light", "dark"];
-const LAYOUTS: Layout[] = ["auto", "mobile", "laptop"];
 const THEME_ICONS: Record<Theme, LucideIcon> = { system: Monitor, light: Sun, dark: Moon };
 const LAYOUT_ICONS: Record<Layout, LucideIcon> = {
   auto: MonitorSmartphone,

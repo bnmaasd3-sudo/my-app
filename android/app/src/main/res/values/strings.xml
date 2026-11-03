@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">قارئ</string>
-    <string name="title_activity_main">قارئ</string>
+    <string name="app_name">سَجيّة</string>
+    <string name="title_activity_main">سَجيّة</string>
     <string name="package_name">app.qari.reader</string>
     <string name="custom_url_scheme">app.qari.reader</string>
 </resources>

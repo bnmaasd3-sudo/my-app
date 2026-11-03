@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "قارئ",
-    short_name: "قارئ",
+    name: "سَجيّة",
+    short_name: "سَجيّة",
     description: "اقرأ كتابك بعد تسجيل الدخول، بلا ملفات تُحمَّل أو تُرسل.",
     lang: "ar",
     dir: "rtl",

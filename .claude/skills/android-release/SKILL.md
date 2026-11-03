@@ -1,6 +1,6 @@
 ---
 name: android-release
-description: إصدار نسخة أندرويد من «قارئ» بـ Capacitor — التغليف، وتفعيل منع لقطة الشاشة (FLAG_SECURE)، والتوقيع، والنسخة التجريبية، وقائمة الفحص قبل المتجر. Use when building an APK/AAB, wrapping the site for Android, enabling screenshot blocking, or preparing a Play Store release (or when the user runs /apk).
+description: إصدار نسخة أندرويد من «سَجيّة» بـ Capacitor — التغليف، وتفعيل منع لقطة الشاشة (FLAG_SECURE)، والتوقيع، والنسخة التجريبية، وقائمة الفحص قبل المتجر. Use when building an APK/AAB, wrapping the site for Android, enabling screenshot blocking, or preparing a Play Store release (or when the user runs /apk).
 ---
 
 # إصدار أندرويد
@@ -9,13 +9,13 @@ description: إصدار نسخة أندرويد من «قارئ» بـ Capacitor
 
 ## ما هو مبني (المرحلة 3)
 - `capacitor.config.ts`: يفتح التطبيق الموقع المنشور (`QARI_URL`)، و`android-shell/` صفحة تظهر حين لا يوجد اتصال.
-- `android/`: مشروع أندرويد. `MainActivity.java` يفعّل FLAG_SECURE، والأيقونات بلون التطبيق، والاسم «قارئ» بالعربية و«Qari» بالإنجليزية.
+- `android/`: مشروع أندرويد. `MainActivity.java` يفعّل FLAG_SECURE، والأيقونات بلون التطبيق، والاسم «سَجيّة» بالعربية و«Sajiyya» بالإنجليزية.
 - `.github/workflows/android.yml`: يبني APK تجريبيًا على GitHub ويرفعه ملفًا قابلًا للتنزيل (Artifact باسم `qari-debug-apk`). يعمل يدويًا من تبويب Actions، أو تلقائيًا عند تغيير ملفات أندرويد. اضبط متغير المستودع `QARI_URL` على رابط الإنتاج.
 - بيئة Claude لا تستطيع البناء محليًا، لأن مستودعات Google محجوبة فيها. البناء يتم على GitHub.
 
 ## التغليف
 - التطبيق موقع بخادم (تسجيل دخول وفصول من القاعدة)، فيُغلَّف بتوجيه Capacitor إلى الموقع المنشور: `server.url` في `capacitor.config.ts` يشير إلى رابط الإنتاج على Vercel.
-- `appId`: `app.qari.reader` (لا يتغير بعد أول رفع للمتجر). `appName`: `قارئ`.
+- `appId`: `app.qari.reader` (لا يتغير بعد أول رفع للمتجر). `appName`: `سَجيّة` (والاسم بالإنجليزية Sajiyya في `values-en/strings.xml`).
 - الحزم: `@capacitor/core` و`@capacitor/cli` و`@capacitor/android`، ثم `npx cap add android` و`npx cap sync android`.
 
 ## منع لقطة الشاشة (FLAG_SECURE)
@@ -36,7 +36,7 @@ public void onCreate(Bundle savedInstanceState) {
 يمنع اللقطة وتسجيل الشاشة، ويُظهر شاشة سوداء في قائمة التطبيقات الأخيرة.
 
 ## الأيقونة والاسم
-من `public/icons/icon-512.png` ولون الخلفية `#0f5c5a`. اسم التطبيق «قارئ» بالعربية، و«Qari» للغة الإنجليزية في `strings.xml`.
+من `public/icons/icon-512.png` ولون الخلفية `#0f5c5a`. اسم التطبيق «سَجيّة» بالعربية، و«Sajiyya» للغة الإنجليزية في `strings.xml`.
 
 ## التوقيع
 - مفتاح التوقيع (keystore) يُنشأ مرة واحدة، ويُحفظ **خارج المستودع**، وكلمته عند صاحب المشروع فقط. ضياعه يعني أن التحديثات لا تُرفع للتطبيق نفسه.

@@ -1,6 +1,6 @@
 ---
 name: reader-ui
-description: قواعد شاشات القراءة في «قارئ» — الخطوط والاتجاه والألوان وأحجام الخط والوضع الليلي وسطر اسم القارئ، والاختبار على عرض هاتف رخيص. Use for any work on reading screens, the chapter view, typography, night mode, the reader's name line, icons, or layout of the app.
+description: قواعد شاشات القراءة في «سَجيّة» — الخطوط والاتجاه والألوان وأحجام الخط والوضع الليلي وسطر اسم القارئ، والاختبار على عرض هاتف رخيص. Use for any work on reading screens, the chapter view, typography, night mode, the reader's name line, icons, or layout of the app.
 ---
 
 # شاشات القراءة
@@ -52,9 +52,7 @@ description: قواعد شاشات القراءة في «قارئ» — الخط
 - لا تَعِد القارئ بأن هذا يمنع التصوير؛ المنع الحقيقي هو FLAG_SECURE في تطبيق أندرويد، والاسم في التذييل رادع.
 
 ## الاختبار قبل التسليم
-صوّر كل شاشة غيّرتها بـ Playwright (مثبَّت مسبقًا: `require('playwright')`) على:
-- عرض 360px (هاتف رخيص) وعرض 1280px.
-- العربية والإنجليزية.
-- الوضع الفاتح والليلي (`colorScheme`).
-
-وتحقق أن `document.documentElement.scrollWidth` لا يتجاوز عرض الشاشة (لا تمرير أفقي)، وأن الفصل يفتح في أقل من ثانيتين.
+- `npm run build && npm run test:visual` (`tests/visual/screens.test.ts`) يلتقط الفصل، والفصل بطريقة «لابتوب»، والفهرس، والمكتبة، بعرض 390px و1280px، نهاري وليلي، عربي وإنجليزي، ويحفظ الصور في `test-results/visual`. ويعمل في CI بعد البناء، والصور ترفق بالتشغيل (`visual-screenshots`).
+- يفشل إن ظهر تمرير أفقي، أو قلّ عمود النص عن 60% من عرض الشاشة ولم يبلغ أقصى عرضه المصمَّم، أو ظهر عمود الفهرس الجانبي تحت 1024px.
+- يعمل على صفحة `/[lang]/visual-fixtures/{chapter,contents,library}` التي تعرض مكوّنات الواجهة نفسها (`chapter-view.tsx` و`contents-view.tsx` و`library-view.tsx`) ببيانات مصطنعة. لا تفتح إلا إن شُغّل الخادم بـ `VISUAL_FIXTURES=1`، وفي الإنتاج 404.
+- كل شاشة قراءة جديدة: أضفها إلى الصفحة المصطنعة وإلى الاختبار. وانظر في الصور بعينك قبل التسليم، وأن الفصل يفتح في أقل من ثانيتين.
