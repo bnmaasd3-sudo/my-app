@@ -5,6 +5,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { revokeDevice, setEntitlement, setReaderActive, setSallaProduct } from "./actions";
 import { AddReaderForm } from "./add-reader-form";
+import { ResendWelcome } from "./resend-welcome";
 
 export type Dashboard = {
   books: { slug: string; title: string; chapters: number; readers: number }[];
@@ -16,7 +17,11 @@ export type Dashboard = {
     books: { slug: string; title: string; active: boolean; source: string }[];
     devices: { id: string; last_seen: string; revoked: boolean }[];
     last_read_at: string | null;
+    /** From Supabase Auth; missing until the 20261104010000 migration is applied. */
+    last_sign_in_at?: string | null;
   }[];
+  /** Invited emails that have not signed in yet; missing before that migration. */
+  invites?: { email: string; name: string | null; created_at: string; books: string[] }[];
   reads: { email: string; book: string; chapter: string; opened_at: string }[];
 };
 
@@ -63,7 +68,7 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
 
   return (
     <>
-      <AddReaderForm books={books} dict={t} />
+      <AddReaderForm books={books} lang={lang} dict={t} />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-xl font-semibold">{t.books}</h2>
@@ -92,6 +97,13 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
                   <p className="text-sm text-muted" dir="ltr">
                     {reader.email}
                   </p>
+                  {"last_sign_in_at" in reader && (
+                    <p className="text-xs text-muted">
+                      {reader.last_sign_in_at
+                        ? `${t.lastSignIn} ${when.format(new Date(reader.last_sign_in_at))}`
+                        : t.neverSignedIn}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={reader.active ? "text-sm text-accent" : "text-sm text-muted"}>
@@ -102,6 +114,8 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
                   </form>
                 </div>
               </div>
+
+              <ResendWelcome email={reader.email} name={reader.name} lang={lang} dict={t} />
 
               <div className="flex flex-wrap gap-2">
                 {books.map((book) => {
@@ -149,6 +163,32 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
           ))}
         </ul>
       </section>
+
+      {data.invites && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-xl font-semibold">{t.invites}</h2>
+          {data.invites.length === 0 && <p className="text-muted">{t.noInvites}</p>}
+          <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface">
+            {data.invites.map((invite) => (
+              <li key={invite.email} className="flex flex-col gap-2 px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex flex-col">
+                    <span className="font-medium">{invite.name || invite.email}</span>
+                    <span dir="ltr" className="text-start text-xs text-muted">
+                      {invite.email}
+                    </span>
+                  </span>
+                  <span className="text-xs text-muted">
+                    {t.invitedAt} {when.format(new Date(invite.created_at))}
+                  </span>
+                </div>
+                {invite.books.length > 0 && <p className="text-xs text-muted">{invite.books.join(" · ")}</p>}
+                <ResendWelcome email={invite.email} name={invite.name} lang={lang} dict={t} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-xl font-semibold">{t.salla.title}</h2>

@@ -1,23 +1,27 @@
 "use client";
 
 import { useActionState } from "react";
+import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { addReader } from "./actions";
 
 type Props = {
   books: { slug: string; title: string }[];
+  /** The panel's language, for the welcome email. */
+  lang: Locale;
   dict: Dictionary["admin"];
 };
 
 const fieldClass =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 outline-none focus:border-accent";
 
-export function AddReaderForm({ books, dict }: Props) {
+export function AddReaderForm({ books, lang, dict }: Props) {
   const [state, action, pending] = useActionState(addReader, { status: "idle" });
 
   return (
     <form action={action} className="grid gap-3 rounded-2xl border border-border bg-surface p-5 sm:grid-cols-2">
       <h2 className="font-heading text-lg font-semibold sm:col-span-2">{dict.addReader}</h2>
+      <input type="hidden" name="lang" value={lang} />
       <label className="flex flex-col gap-1.5">
         <span className="text-sm">{dict.email}</span>
         <input name="email" type="email" dir="ltr" required className={fieldClass} />
@@ -46,6 +50,7 @@ export function AddReaderForm({ books, dict }: Props) {
         <p role="status" className="text-sm text-muted">
           {state.status === "linked" && dict.linked}
           {state.status === "invited" && dict.invited}
+          {state.mail && ` ${dict.mail[state.mail]}`}
           {state.status === "error" && state.error && dict.errors[state.error]}
           {books.length === 0 && dict.noBooks}
         </p>

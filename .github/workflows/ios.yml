@@ -1,0 +1,32 @@
+name: iOS build
+
+# Compiles the iOS app for the simulator, without signing, to show the project
+# and its screen protection build. Releasing to the App Store needs a Mac with
+# Xcode and an Apple developer account: see docs/ios.md.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ios/**
+      - capacitor.config.ts
+      - .github/workflows/ios.yml
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Check that screen protection is in place
+        run: grep -q "ScreenGuard.hideFromScreenshots" ios/App/App/SceneDelegate.swift
+      - name: Build for the simulator
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug CODE_SIGNING_ALLOWED=NO build
