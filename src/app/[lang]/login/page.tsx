@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { login } from "../actions";
+import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
 import { LoginForm } from "./login-form";
 
@@ -27,6 +28,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/[lang]/log
           <LinkAwareForm searchParams={searchParams} lang={lang} dict={dict.login} />
         </Suspense>
       </main>
+      <SiteFooter lang={lang} dict={dict} />
     </div>
   );
 }

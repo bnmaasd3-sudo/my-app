@@ -1,8 +1,9 @@
 name: Android APK
 
-# Builds a debug APK for testing on a phone. The app opens the deployed site,
-# so set the repository variable QARI_URL (Settings → Secrets and variables →
-# Actions → Variables) to the production URL, or pass it when running by hand.
+# Builds a debug APK for testing on a phone, and, when the release key is in the
+# repository secrets, a signed AAB (for Google Play) and APK. See docs/android.md.
+# The app opens the deployed site: the repository variable QARI_URL, the
+# workflow input, or the default below.
 on:
   workflow_dispatch:
     inputs:
@@ -29,6 +30,10 @@ jobs:
     timeout-minutes: 30
     env:
       QARI_URL: ${{ inputs.url || vars.QARI_URL || 'https://qari-bnmaasd3-3308.vercel.app' }}
+      ANDROID_VERSION_CODE: ${{ github.run_number }}
+      # Secrets cannot be read in a step's `if`, so this says whether all four
+      # release secrets are set. Pull requests never get the real key.
+      HAS_RELEASE_KEY: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,3 +55,44 @@ jobs:
           name: qari-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      # Signed release, only when the four ANDROID_* secrets are set, and never for pull requests.
+      - name: Unpack the release key
+        if: env.HAS_RELEASE_KEY == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - name: Build the signed AAB and APK
+        if: env.HAS_RELEASE_KEY == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_RELEASE_KEY == 'true'
+        with:
+          name: sajiyya-release
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+      - name: Forget the release key
+        if: always() && env.HAS_RELEASE_KEY == 'true'
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      # On pull requests, prove the signing setup works with a throwaway key.
+      - name: Check release signing with a throwaway key
+        if: github.event_name == 'pull_request'
+        working-directory: android
+        run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/throwaway.jks" -alias ci -keyalg RSA -keysize 2048 \
+            -validity 1 -storepass throwaway -keypass throwaway -dname "CN=CI"
+          ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/throwaway.jks" ANDROID_KEYSTORE_PASSWORD=throwaway \
+            ANDROID_KEY_ALIAS=ci ANDROID_KEY_PASSWORD=throwaway ./gradlew assembleRelease --no-daemon
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -q "CN=CI"
+          rm -f "$RUNNER_TEMP/throwaway.jks"

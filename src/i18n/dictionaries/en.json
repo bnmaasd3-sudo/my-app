@@ -189,7 +189,9 @@
     "invitedAt": "Invited:"
   },
   "footer": {
-    "rights": "Sajiyya"
+    "rights": "Sajiyya",
+    "privacy": "Privacy policy",
+    "terms": "Terms of use"
   },
   "test": {
     "title": "Type test",
@@ -208,5 +210,64 @@
       "button": "Sign in to {app}",
       "footer": "If you were not expecting this message, you can ignore it."
     }
+  },
+  "legal": {
+    "privacyTitle": "Privacy policy",
+    "termsTitle": "Terms of use",
+    "updated": "Last updated: November 2026",
+    "contact": "To contact us, or to ask for your account and data to be deleted:",
+    "contactFallback": "To contact us, or to ask for your account and data to be deleted, write to the store you bought from.",
+    "privacy": [
+      {
+        "title": "What we collect",
+        "body": "Your email and name, to sign you in and show your copy in your name. An identifier for each device you read on, since each account has two devices. Your reading history: which chapter you opened, when, and where you stopped, so you can carry on. The reading settings you choose. Your answers in the type test, if you take it."
+      },
+      {
+        "title": "How we use it",
+        "body": "Only to run the service: signing in, opening your books on your devices, keeping your place, and showing your test result. The app's owner sees this data to manage accounts and devices."
+      },
+      {
+        "title": "What we do not do",
+        "body": "We do not sell your data or share it for advertising, and the app has no ads or advertising trackers."
+      },
+      {
+        "title": "Where it is kept",
+        "body": "With the services the app runs on: Supabase for accounts and the database, Vercel for hosting, Resend for email, and Salla if you bought there."
+      },
+      {
+        "title": "The books",
+        "body": "Books are never downloaded and their files are never sent. The text is shown only inside the app, with your name and email at the foot of each chapter."
+      },
+      {
+        "title": "Your account",
+        "body": "We do not delete accounts on our own; an account is only suspended when needed. You can ask for your account and data to be deleted at any time by email."
+      }
+    ],
+    "terms": [
+      {
+        "title": "The service",
+        "body": "In this app you read the books you bought, after signing in with your email."
+      },
+      {
+        "title": "Your account",
+        "body": "Your account is personal and not to be shared. Each account has two devices; to remove an old one, contact us."
+      },
+      {
+        "title": "Allowed use",
+        "body": "Personal reading only. Copying, photographing or republishing the text, or sharing your account, is not allowed."
+      },
+      {
+        "title": "Suspension",
+        "body": "An account may be suspended if these terms are broken, or if the purchase is refunded."
+      },
+      {
+        "title": "The type test",
+        "body": "The test is a tool for self-knowledge, not a medical or psychological diagnosis."
+      },
+      {
+        "title": "Changes",
+        "body": "We may update these terms, and every update is published on this page."
+      }
+    ]
   }
 }
