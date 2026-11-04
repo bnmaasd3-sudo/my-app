@@ -1,3 +1,5 @@
+import { ClipboardCheck } from "lucide-react";
+import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
@@ -30,11 +32,26 @@ export type SallaPanel = {
   }[];
 };
 
+export type TestResultRow = {
+  key: string;
+  user_id: string | null;
+  status: string | null;
+  name: string | null;
+  updated_at: string;
+};
+
 const smallButton = "rounded-full border border-border px-3 py-1 text-xs hover:bg-background";
 
-type Props = { data: Dashboard; salla: SallaPanel; webhookUrl: string; lang: Locale; dict: Dictionary };
+type Props = {
+  data: Dashboard;
+  salla: SallaPanel;
+  tests: TestResultRow[];
+  webhookUrl: string;
+  lang: Locale;
+  dict: Dictionary;
+};
 
-export function AdminView({ data, salla, webhookUrl, lang, dict }: Props) {
+export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props) {
   const { books, readers, reads } = data;
 
   const when = new Intl.DateTimeFormat(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB", {
@@ -186,6 +203,8 @@ export function AdminView({ data, salla, webhookUrl, lang, dict }: Props) {
         </ul>
       </section>
 
+      <TestResultsSection tests={tests} readers={readers} lang={lang} dict={dict} when={when} />
+
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-xl font-semibold">{t.recentReads}</h2>
         {reads.length === 0 && <p className="text-muted">{t.noReads}</p>}
@@ -202,5 +221,56 @@ export function AdminView({ data, salla, webhookUrl, lang, dict }: Props) {
         </ul>
       </section>
     </>
+  );
+}
+
+function TestResultsSection({
+  tests,
+  readers,
+  lang,
+  dict,
+  when,
+}: {
+  tests: TestResultRow[];
+  readers: Dashboard["readers"];
+  lang: Locale;
+  dict: Dictionary;
+  when: Intl.DateTimeFormat;
+}) {
+  const t = dict.admin;
+  const emails = new Map(readers.map((reader) => [reader.id, reader.email]));
+  const statusLabel = (status: string | null | undefined) =>
+    status === "done" || status === "expired" || status === "open" ? t.testStatus[status] : "-";
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-heading text-xl font-semibold">{t.testResults}</h2>
+        <Link
+          href={`/${lang}/admin/test`}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 font-heading text-sm text-accent-foreground"
+        >
+          <ClipboardCheck size={16} aria-hidden />
+          {t.openTestResults}
+        </Link>
+      </div>
+      {tests.length === 0 && <p className="text-muted">{t.noTestResults}</p>}
+      {tests.length > 0 && (
+        <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface">
+          {tests.map((row) => (
+            <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+              <span className="flex min-w-0 flex-col">
+                <span className="font-medium">{row.name || "-"}</span>
+                <span dir="ltr" className="truncate text-start text-xs text-muted">
+                  {(row.user_id && emails.get(row.user_id)) || row.key}
+                </span>
+              </span>
+              <span>{statusLabel(row.status)}</span>
+              <span className="text-muted">{when.format(new Date(row.updated_at))}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

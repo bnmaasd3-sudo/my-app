@@ -7,7 +7,7 @@ import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "../site-header";
-import { AdminView, type Dashboard, type SallaPanel } from "./admin-view";
+import { AdminView, type Dashboard, type SallaPanel, type TestResultRow } from "./admin-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(await currentLocale());
@@ -36,9 +36,14 @@ async function Panel({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (isAdmin !== true) notFound();
 
-  const [dashboard, salla] = await Promise.all([
+  const [dashboard, salla, tests] = await Promise.all([
     supabase.rpc("admin_dashboard"),
     supabase.rpc("admin_salla"),
+    supabase
+      .from("test_results")
+      .select("key, user_id, status:answers->>status, name:answers->>name, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(30),
   ]);
   if (dashboard.error || salla.error) return <p role="alert">{dict.errors.generic}</p>;
 
@@ -48,6 +53,7 @@ async function Panel({ lang, dict }: { lang: Locale; dict: Dictionary }) {
     <AdminView
       data={dashboard.data as Dashboard}
       salla={salla.data as SallaPanel}
+      tests={tests.error ? [] : (tests.data as TestResultRow[])}
       webhookUrl={webhookUrl}
       lang={lang}
       dict={dict}
