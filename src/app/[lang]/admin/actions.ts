@@ -1,12 +1,48 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { dir, hasLocale, type Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
+import { sendMail, welcomeMail, type MailResult } from "@/lib/mail";
+import { siteOrigin } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { isValidEmail, normalizeEmail } from "@/lib/validation";
 
 export type AddReaderState = {
   status: "idle" | "linked" | "invited" | "error";
   error?: "invalidEmail" | "noBook" | "generic";
+  /** Whether the welcome email went out (or email is not set up). */
+  mail?: MailResult;
+};
+
+export type ResendState = { status: "idle" | MailResult | "error" };
+
+/** The welcome email, in the language the owner is using the panel in. Never throws. */
+async function sendWelcome(email: string, name: string | null, lang: Locale): Promise<MailResult> {
+  try {
+    return await composeAndSend(email, name, lang);
+  } catch {
+    return "failed";
+  }
+}
+
+async function composeAndSend(email: string, name: string | null, lang: Locale): Promise<MailResult> {
+  const dict = await getDictionary(lang);
+  return sendMail(
+    welcomeMail({
+      to: email,
+      name,
+      loginUrl: `${await siteOrigin()}/${lang}/login`,
+      appName: dict.app.name,
+      dir: dir(lang),
+      text: dict.email.welcome,
+    }),
+  );
+}
+
+const localeOf = (formData: FormData): Locale => {
+  const lang = String(formData.get("lang") ?? "");
+  return hasLocale(lang) ? lang : "ar";
 };
 
 // Every function below is also checked by the database (assert_admin), so a
@@ -35,7 +71,21 @@ export async function addReader(_previous: AddReaderState, formData: FormData): 
   if (error) return { status: "error", error: "generic" };
 
   refresh();
-  return { status: data === "linked" ? "linked" : "invited" };
+  if (data === "linked") return { status: "linked" };
+  // A new invitation: tell them the book is there and how to sign in. Someone
+  // who already has an account just finds the book in their library.
+  const mail = await sendWelcome(email, name || null, localeOf(formData));
+  return { status: "invited", mail };
+}
+
+/** Sends the welcome again to a reader or an invited email. Owner only. */
+export async function resendWelcome(_previous: ResendState, formData: FormData): Promise<ResendState> {
+  const supabase = await ownerClient();
+  if (!supabase) return { status: "error" };
+  const email = normalizeEmail(formData.get("email"));
+  if (!isValidEmail(email)) return { status: "error" };
+  const name = String(formData.get("name") ?? "").trim().slice(0, 120) || null;
+  return { status: await sendWelcome(email, name, localeOf(formData)) };
 }
 
 export async function setReaderActive(readerId: string, active: boolean) {

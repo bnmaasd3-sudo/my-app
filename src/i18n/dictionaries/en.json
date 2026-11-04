@@ -173,7 +173,20 @@
       "open": "In progress"
     },
     "testPanelLead": "Readers and their results, each result in detail, a trial run of the test, and the path choice. The test panel itself is in Arabic, as designed.",
-    "backToAdmin": "Back to the owner panel"
+    "backToAdmin": "Back to the owner panel",
+    "mail": {
+      "sent": "A welcome email was sent.",
+      "skipped": "No welcome email was sent: email is not set up yet (RESEND_API_KEY and MAIL_FROM).",
+      "failed": "The welcome email could not be sent. Try “Resend welcome” later."
+    },
+    "resendWelcome": "Resend welcome",
+    "resending": "One moment…",
+    "resent": "Sent.",
+    "lastSignIn": "Last sign-in:",
+    "neverSignedIn": "Not signed in yet",
+    "invites": "Invitations not used yet",
+    "noInvites": "No pending invitations.",
+    "invitedAt": "Invited:"
   },
   "footer": {
     "rights": "Sajiyya"
@@ -185,5 +198,15 @@
     "timeLeft": "Time left since you opened it",
     "loading": "Loading the test…",
     "loadError": "The test could not load right now. Refresh the page in a moment."
+  },
+  "email": {
+    "welcome": {
+      "subject": "Welcome to {app}",
+      "greeting": "Hello {name},",
+      "greetingNoName": "Hello,",
+      "body": "A book is waiting for you in {app}. Sign in with this email address and you will get a code or a link; there is no password.",
+      "button": "Sign in to {app}",
+      "footer": "If you were not expecting this message, you can ignore it."
+    }
   }
 }

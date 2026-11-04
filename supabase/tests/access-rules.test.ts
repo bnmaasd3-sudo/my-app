@@ -13,7 +13,7 @@ const SUPABASE_STANDINS = `
   create role authenticated nologin;
   create role service_role nologin bypassrls;
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text, encrypted_password text default '');
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, encrypted_password text default '', last_sign_in_at timestamptz);
   create schema storage;
   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
   alter table storage.objects enable row level security;
@@ -381,6 +381,30 @@ describe("owner panel", () => {
     const data = await openChapter(LATER, "infj-t-h-reader", 1);
     expect(data.reader.name).toBe("Laila");
     await expect(openChapter(LATER, "esfj-reader", 1)).rejects.toThrow("not_entitled");
+  });
+
+  it("shows the owner each reader's last sign-in and the invitations not used yet", async () => {
+    await db.query(`update auth.users set last_sign_in_at = '2026-11-04T08:00:00Z' where id = $1`, [INFJ_READER]);
+    await as("authenticated", OWNER, `select public.admin_add_reader('waiting@example.com', 'Huda', 'infj-t-h-reader')`);
+    const [{ data }] = await as<{
+      data: {
+        readers: { email: string; last_sign_in_at: string | null }[];
+        invites: { email: string; name: string; books: string[] }[];
+      };
+    }>("authenticated", OWNER, `select public.admin_dashboard() as data`);
+    const infj = data.readers.find((r) => r.email === "infj@example.com");
+    expect(new Date(infj!.last_sign_in_at!).toISOString()).toBe("2026-11-04T08:00:00.000Z");
+    expect(data.readers.find((r) => r.email === "esfj@example.com")!.last_sign_in_at).toBeNull();
+    expect(data.invites).toEqual([{ email: "waiting@example.com", name: "Huda", created_at: expect.any(String), books: ["INFJ"] }]);
+
+    // An invitation counts as used once someone signs in with it, reader row or not (the owner's own invite).
+    await as("service_role", null, `insert into public.invites (email, is_admin) values ('owner@example.com', true)`);
+    const [{ data: again }] = await as<{ data: { invites: { email: string }[] } }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_dashboard() as data`,
+    );
+    expect(again.invites.map((i) => i.email)).toEqual(["waiting@example.com"]);
   });
 
   it("refuses a sign-up from an email nobody invited", async () => {

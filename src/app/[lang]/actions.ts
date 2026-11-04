@@ -1,10 +1,11 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { DEVICE_COOKIE } from "@/lib/device";
 import { isFontSize, isLayout, isTheme } from "@/lib/reader-prefs";
+import { siteOrigin } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import {
   isValidCode,
@@ -32,16 +33,6 @@ const isRateLimited = (error: AuthError) =>
 const isRefusedEmail = (error: AuthError) => typeof error.status === "number" && error.status >= 400;
 
 const safeLocale = (lang: string) => (hasLocale(lang) ? lang : "ar");
-
-// The site's public address: NEXT_PUBLIC_SITE_URL when set, else this request's host.
-async function siteOrigin() {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
-  if (configured) return configured;
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
-}
 
 export async function login(
   lang: string,
