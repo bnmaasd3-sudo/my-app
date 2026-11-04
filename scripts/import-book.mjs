@@ -3,7 +3,10 @@
 // See .claude/skills/import-book/SKILL.md.
 //
 //   node scripts/import-book.mjs --dir <chapters folder> --slug infj-t-h-reader \
-//     --title "<book title>" [--lang ar] [--out <file.sql>] [--strict]
+//     --title "<book title>" [--lang ar] [--type INFJ-T-H] [--kind encyclopedia|novel|appendix]
+//     [--out <file.sql>] [--strict]
+//
+// --type and --kind place the book in its type's card in the library.
 //
 // Without --out it only prints the report. The SQL file holds the book text,
 // so write it outside the repository and never commit it.
@@ -11,7 +14,7 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { checkChapters, countWords, toChapters, toSql } from "./lib/book-import.mjs";
+import { checkBookMeta, checkChapters, countWords, toChapters, toSql } from "./lib/book-import.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -19,13 +22,36 @@ const { values } = parseArgs({
     slug: { type: "string" },
     title: { type: "string" },
     lang: { type: "string", default: "ar" },
+    type: { type: "string" },
+    kind: { type: "string" },
     out: { type: "string" },
     strict: { type: "boolean", default: false },
   },
 });
 
 if (!values.dir || !values.slug || !values.title) {
-  console.error("Usage: --dir <folder> --slug <slug> --title <title> [--lang ar|en] [--out file.sql]");
+  console.error(
+    "Usage: --dir <folder> --slug <slug> --title <title> [--lang ar|en] [--type INFJ-T-H] [--kind encyclopedia|novel|appendix] [--out file.sql]",
+  );
+  process.exit(2);
+}
+
+// A typed book must say which part of its type it is; otherwise it is the encyclopedia by default.
+if (values.type && !values.kind) {
+  console.error("--type needs --kind: encyclopedia, novel or appendix.");
+  process.exit(2);
+}
+const meta = {
+  slug: values.slug,
+  title: values.title,
+  lang: values.lang,
+  typeCode: values.type ?? null,
+  kind: values.kind ?? "encyclopedia",
+};
+try {
+  checkBookMeta(meta);
+} catch (error) {
+  console.error(error.message);
   process.exit(2);
 }
 
@@ -60,6 +86,6 @@ if (values.out) {
     console.error("Refusing to write book text inside the repository. Choose a path outside it.");
     process.exit(2);
   }
-  writeFileSync(out, toSql({ slug: values.slug, title: values.title, lang: values.lang }, chapters));
+  writeFileSync(out, toSql(meta, chapters));
   console.log(`SQL written to ${out}. Run it once in the Supabase SQL editor (or execute_sql).`);
 }

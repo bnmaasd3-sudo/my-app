@@ -677,3 +677,43 @@ describe("type test results", () => {
     await expect(as("anon", null, `select * from public.test_settings`)).rejects.toThrow(/permission denied/);
   });
 });
+
+describe("library by type", () => {
+  it("gives each book its type and kind, encyclopedia first", async () => {
+    await as(
+      "service_role",
+      null,
+      `update public.books set type_code = 'INFJ-T-H', kind = 'encyclopedia' where slug = 'infj-t-h-reader'`,
+    );
+    await as(
+      "service_role",
+      null,
+      `insert into public.books (slug, title, lang, type_code, kind) values ('infj-novel', 'Novel', 'ar', 'INFJ-T-H', 'novel')`,
+    );
+    await as(
+      "service_role",
+      null,
+      `insert into public.entitlements (reader_id, book_id) select $1, id from public.books where slug = 'infj-novel'`,
+      [INFJ_READER],
+    );
+    const [{ data }] = await as<{ data: { slug: string; type_code: string; kind: string }[] }>(
+      "authenticated",
+      INFJ_READER,
+      `select public.my_library() as data`,
+    );
+    expect(data.map((b) => [b.slug, b.type_code, b.kind])).toEqual([
+      ["infj-t-h-reader", "INFJ-T-H", "encyclopedia"],
+      ["infj-novel", "INFJ-T-H", "novel"],
+    ]);
+  });
+
+  it("refuses an unknown kind or a malformed type", async () => {
+    await expect(
+      as("service_role", null, `update public.books set kind = 'poem' where slug = 'infj-t-h-reader'`),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as("service_role", null, `update public.books set type_code = 'infj' where slug = 'infj-t-h-reader'`),
+    ).rejects.toThrow(/check constraint/);
+  });
+});
+
