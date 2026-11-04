@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 import { dir, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
+import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
 
 export type BookKind = "encyclopedia" | "novel" | "appendix";
@@ -63,6 +64,7 @@ export function LibraryFrame({ lang, dict, children }: { lang: Locale; dict: Dic
         </div>
         {children}
       </main>
+      <SiteFooter lang={lang} dict={dict} />
     </div>
   );
 }

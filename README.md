@@ -18,6 +18,14 @@ npm run typecheck  # فحص الأنواع · type check
 
 Project rules live in [`CLAUDE.md`](CLAUDE.md); the budget is tracked in [`docs/budget.md`](docs/budget.md).
 
+## أدلة المالك · Owner guides
+
+- [`docs/runbook.md`](docs/runbook.md): إضافة كتاب أو مالك، والنسخ الاحتياطية، وإن تعطّل الدخول، والانتقال إلى نطاق خاص · adding books and owners, backups, sign-in problems, moving to a domain.
+- [`docs/salla.md`](docs/salla.md): تفعيل البيع من سلة · turning on Salla sales.
+- [`docs/android.md`](docs/android.md): النسخة التجريبية والإصدار الموقّع وGoogle Play · test builds, signed release, Google Play.
+- [`docs/ios.md`](docs/ios.md): تطبيق آيفون · the iPhone app.
+- الصفحتان العامتان: `/ar/privacy` و`/ar/terms` (عنوان التواصل من `OWNER_EMAIL`) · public pages, contact address from `OWNER_EMAIL`.
+
 ## البريد · Email
 
 التطبيق يرسل رسالة ترحيب حين يضيف المالك قارئًا (ومعها زر «إعادة إرسال الترحيب» في لوحة المالك)، ويرسل Supabase رموز الدخول وروابطه. الاثنان يخرجان من حساب Resend واحد:

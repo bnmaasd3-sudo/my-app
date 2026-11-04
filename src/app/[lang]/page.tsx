@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 
 const features: { key: "login" | "resume" | "personal"; icon: LucideIcon }[] = [
@@ -63,7 +64,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         </section>
       </main>
 
-      <footer className="py-6 text-sm text-muted">{dict.footer.rights}</footer>
+      <SiteFooter lang={lang} dict={dict} />
     </div>
   );
 }
