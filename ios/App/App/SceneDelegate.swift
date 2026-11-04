@@ -4,6 +4,7 @@ import Capacitor
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var captureCover: UIView?
+    private var backgroundCover: UIView?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
@@ -34,6 +35,21 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         captureChanged()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+    }
+
+    /// Leaving the app (home, app switcher) covers the book, so its last screen is
+    /// not kept as the app's picture. A short loss of focus (Notification Center,
+    /// a call banner) does not: the owner found dimming while reading distracting.
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        guard let window = window, backgroundCover == nil else { return }
+        let cover = ScreenGuard.cover(for: window.bounds)
+        window.addSubview(cover)
+        backgroundCover = cover
+    }
+
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        backgroundCover?.removeFromSuperview()
+        backgroundCover = nil
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

@@ -62,7 +62,7 @@
 - `capacitor.config.ts` و`android/` و`android-shell/`: تطبيق أندرويد (FLAG_SECURE في `MainActivity.java`).
 - `ios/`: تطبيق آيفون بـ Capacitor، والحماية من اللقطة والتسجيل في `ios/App/App/SceneDelegate.swift`، والبناء والنشر في `docs/ios.md`.
 - `src/lib/mail.ts`: البريد عبر Resend (`RESEND_API_KEY` و`MAIL_FROM`، سرّيان)؛ بلا المفتاحين لا يُرسل شيء. رسالة الترحيب عند إضافة قارئ، وزر «إعادة إرسال الترحيب» في لوحة المالك.
-- `.github/workflows/`: `ci.yml` (فحص واختبارات وبناء لكل طلب دمج)، و`android.yml` (بناء APK تجريبي، والرابط الافتراضي مضبوط فيكفي Run workflow)، و`ios.yml` (بناء للمحاكي بلا توقيع).
+- `.github/workflows/`: `ci.yml` (فحص واختبارات وبناء لكل طلب دمج)، و`android.yml` (بناء APK تجريبي، والرابط الافتراضي مضبوط فيكفي Run workflow)، و`ios.yml` (بناء للمحاكي بلا توقيع، يُشغَّل يدويًا).
 - `.claude/skills/`: سكِلات المهام المتكررة (إدخال كتاب، شاشات القراءة، الصلاحيات، سلة، أندرويد، النشر).
 - `.claude/commands/`: الاختصارات (`/review-code` `/security` `/test` `/deploy` `/add-reader` `/add-book` `/apk` `/app-status` `/budget`).
 - `docs/budget.md`: تقدير كل مرحلة وما صُرف فعلًا.
