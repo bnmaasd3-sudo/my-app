@@ -31,8 +31,9 @@ jobs:
     env:
       QARI_URL: ${{ inputs.url || vars.QARI_URL || 'https://qari-bnmaasd3-3308.vercel.app' }}
       ANDROID_VERSION_CODE: ${{ github.run_number }}
-      # Secrets cannot be read in a step's `if`, so this says whether the release key is set.
-      HAS_RELEASE_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # Secrets cannot be read in a step's `if`, so this says whether all four
+      # release secrets are set. Pull requests never get the real key.
+      HAS_RELEASE_KEY: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,7 +56,7 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      # Signed release, only when the four ANDROID_* secrets are set.
+      # Signed release, only when the four ANDROID_* secrets are set, and never for pull requests.
       - name: Unpack the release key
         if: env.HAS_RELEASE_KEY == 'true'
         env:
@@ -85,7 +86,7 @@ jobs:
 
       # On pull requests, prove the signing setup works with a throwaway key.
       - name: Check release signing with a throwaway key
-        if: github.event_name == 'pull_request' && env.HAS_RELEASE_KEY != 'true'
+        if: github.event_name == 'pull_request'
         working-directory: android
         run: |
           keytool -genkeypair -v -keystore "$RUNNER_TEMP/throwaway.jks" -alias ci -keyalg RSA -keysize 2048 \

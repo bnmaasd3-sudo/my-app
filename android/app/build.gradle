@@ -7,8 +7,10 @@ android {
         applicationId "app.qari.reader"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // CI passes the run number, so each store upload has a higher version code.
-        versionCode((System.getenv("ANDROID_VERSION_CODE") ?: "1").toInteger())
+        // CI passes the run number, so each store upload has a higher version code
+        // (see docs/android.md before building a release anywhere else).
+        def ciVersionCode = System.getenv("ANDROID_VERSION_CODE")?.trim()
+        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 1)
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

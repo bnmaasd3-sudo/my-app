@@ -741,3 +741,34 @@ describe("library by type", () => {
   });
 });
 
+describe("deletion on request (docs/runbook.md)", () => {
+  it("the runbook's block removes the reader everywhere and touches no one else", async () => {
+    const block = readFileSync(join(__dirname, "runbook-deletion.sql"), "utf8").replace(/^--.*\n/, "");
+    expect(readFileSync(join(__dirname, "..", "..", "docs", "runbook.md"), "utf8")).toContain(block.trim());
+
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1);
+    await as("service_role", null, `insert into public.test_results (key, user_id, answers) values ($1, $2, '{}')`, [
+      INFJ_READER,
+      INFJ_READER,
+    ]);
+    await openChapter(ESFJ_READER, "esfj-reader", 1);
+
+    await db.exec(block.replace("reader@example.com", "infj@example.com"));
+
+    const left = async (table: string, column: string, id: string) =>
+      (await db.query<{ n: number }>(`select count(*)::int as n from public.${table} where ${column} = $1`, [id]))
+        .rows[0].n;
+    for (const [table, column] of [
+      ["readers", "id"],
+      ["entitlements", "reader_id"],
+      ["devices", "reader_id"],
+      ["reading_log", "reader_id"],
+      ["reading_state", "reader_id"],
+      ["test_results", "user_id"],
+    ]) {
+      expect(await left(table, column, INFJ_READER), table).toBe(0);
+      if (table !== "test_results") expect(await left(table, column, ESFJ_READER), `${table} of others`).toBeGreaterThan(0);
+    }
+  });
+});
+

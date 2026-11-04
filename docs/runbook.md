@@ -16,7 +16,39 @@
 
 `SUPABASE_URL=https://<project>.supabase.co SUPABASE_SERVICE_ROLE_KEY=... node scripts/add-admin.mjs --email <البريد>`
 
-إن لم يكن للبريد حساب يُدعى، ويصير مالكًا عند أول دخول.
+هذا يعرض ما سيحدث فقط. إن كان صحيحًا فأعده وأضف `--yes` في آخره لينفَّذ. إن لم يكن للبريد حساب يُدعى، ويصير مالكًا عند أول دخول.
+
+## طلب حذف الحساب
+
+التطبيق لا يحذف شيئًا من تلقاء نفسه: الإيقاف من اللوحة يمنع الدخول ويُبقي البيانات. فإن طلب قارئ حذف حسابه وبياناته (كما تَعِد سياسة الخصوصية):
+
+1. تأكد أن الطلب من صاحب البريد نفسه (رد على رسالته من البريد ذاته).
+2. أوقفه من لوحة المالك فورًا.
+3. في Supabase ← SQL Editor نفّذ هذا بعد أن تضع بريده في السطر الثاني:
+
+```sql
+do $$
+declare
+  v_email text := lower('reader@example.com');  -- the reader's email
+  v_id uuid;
+begin
+  select id into v_id from public.readers where email = v_email;
+  delete from public.test_results where user_id = v_id or key like v_id::text || '__old_%';
+  delete from public.reading_log where reader_id = v_id;
+  delete from public.reading_state where reader_id = v_id;
+  delete from public.reader_prefs where reader_id = v_id;
+  delete from public.devices where reader_id = v_id;
+  delete from public.salla_orders where reader_id = v_id;
+  delete from public.entitlements where reader_id = v_id;
+  delete from public.readers where id = v_id;
+  delete from public.pending_entitlements where email = v_email;
+  delete from public.invites where email = v_email;
+  delete from public.salla_events where email = v_email;
+end $$;
+```
+
+4. ثم Supabase ← Authentication ← Users ← ابحث عن بريده ← Delete user.
+5. أخبره بالرد أن الحذف تم.
 
 ## النسخ الاحتياطية
 
@@ -45,4 +77,4 @@
 
 ## In English
 
-Add a book with `scripts/import-book.mjs` (check first, then `--out` a SQL file outside the repo and run it once in the SQL editor). Add a second owner with `scripts/add-admin.mjs` using the service key from the environment. Backups: Supabase Database → Backups when your plan includes them, otherwise a regular `supabase db dump`. If sign-in breaks, check Vercel Deployment Protection, the site URL in Vercel and Supabase (Site URL and both `/auth/callback` redirects), email delivery (Custom SMTP through Resend), and that the email is invited and active. For a new domain: Vercel domain and `NEXT_PUBLIC_SITE_URL`, Supabase URLs, Resend domain and `MAIL_FROM`, the Salla webhook URL, `QARI_URL` and rebuilt apps, and the privacy link in both stores.
+A deletion request is handled by hand: suspend the reader, run the SQL block above with their email, then delete the user in Supabase Authentication. Add a book with `scripts/import-book.mjs` (check first, then `--out` a SQL file outside the repo and run it once in the SQL editor). Add a second owner with `scripts/add-admin.mjs` using the service key from the environment (it is a dry run until you add `--yes`). Backups: Supabase Database → Backups when your plan includes them, otherwise a regular `supabase db dump`. If sign-in breaks, check Vercel Deployment Protection, the site URL in Vercel and Supabase (Site URL and both `/auth/callback` redirects), email delivery (Custom SMTP through Resend), and that the email is invited and active. For a new domain: Vercel domain and `NEXT_PUBLIC_SITE_URL`, Supabase URLs, Resend domain and `MAIL_FROM`, the Salla webhook URL, `QARI_URL` and rebuilt apps, and the privacy link in both stores.

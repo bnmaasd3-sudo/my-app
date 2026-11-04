@@ -31,7 +31,9 @@ keytool -genkeypair -v -keystore sajiyya-upload.jks -alias sajiyya -keyalg RSA -
 
 ### 3. ابنِ الإصدار
 
-Actions ← **Android APK** ← **Run workflow**. حين توجد الأسرار الأربعة يخرج أيضًا `sajiyya-release` وفيه `app-release.aab` (للمتجر) و`app-release.apk` (موقّع). رقم الإصدار (`versionCode`) هو رقم التشغيل، فيزيد تلقائيًا مع كل بناء كما يشترط المتجر. وبلا الأسرار يبقى البناء على النسخة التجريبية وحدها.
+Actions ← **Android APK** ← **Run workflow**. حين توجد الأسرار الأربعة يخرج أيضًا `sajiyya-release` وفيه `app-release.aab` (للمتجر) و`app-release.apk` (موقّع). وبلا الأسرار، أو في طلبات الدمج، يبقى البناء على النسخة التجريبية وحدها؛ وفي طلبات الدمج يُجرَّب التوقيع بمفتاح مؤقت لا بمفتاحك.
+
+رقم الإصدار (`versionCode`) هو رقم تشغيل هذا الـ workflow، فيزيد مع كل بناء كما يشترط المتجر. فابنِ الإصدارات من هنا لا من جهازك (البناء خارج CI يأخذ الرقم 1)، ولا تحذف الـ workflow ولا تغيّر اسم ملفه، لأن ذلك يعيد العدّ من أوله فيرفض المتجر الأرقام الأصغر.
 
 ### 4. Google Play Console
 
