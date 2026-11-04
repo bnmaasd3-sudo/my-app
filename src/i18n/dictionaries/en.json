@@ -64,7 +64,15 @@
     "tools": "Tests",
     "testTitle": "Type test",
     "testLead": "Short questions, then cards, then the letters of your type. No right or wrong answers.",
-    "testOpen": "Start the test"
+    "testOpen": "Start the test",
+    "typeLabel": "Type",
+    "typeLead": "Your books of this type, and the type test.",
+    "kinds": {
+      "encyclopedia": "Encyclopedia",
+      "novel": "Novel",
+      "appendix": "Appendices"
+    },
+    "otherBooks": "Other books"
   },
   "reader": {
     "contents": "Contents",

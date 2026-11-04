@@ -74,7 +74,7 @@ describe("toSql", () => {
   it("imports the book in one transaction and refuses to overwrite it", async () => {
     const db = new PGlite();
     await db.exec(`
-      create table public.books (id uuid primary key default gen_random_uuid(), slug text unique, title text, lang text);
+      create table public.books (id uuid primary key default gen_random_uuid(), slug text unique, title text, lang text, type_code text, kind text);
       create table public.chapters (book_id uuid references public.books(id), position int, title text, body text);
     `);
     const chapters = toChapters([
@@ -96,5 +96,15 @@ describe("toSql", () => {
 
   it("rejects unsafe slugs", () => {
     expect(() => toSql({ slug: "x'; drop", title: "t", lang: "ar" }, [])).toThrow(/Invalid slug/);
+    expect(() => toSql({ slug: "x", title: "t", lang: "ar", typeCode: "infj'" }, [])).toThrow(/Invalid type/);
+    expect(() => toSql({ slug: "x", title: "t", lang: "ar", kind: "poem" }, [])).toThrow(/Invalid kind/);
+  });
+});
+
+describe("toSql with a type", () => {
+  it("files the book under its type and kind", () => {
+    const sql = toSql({ slug: "infj-t-h-novel", title: "رواية", lang: "ar", typeCode: "INFJ-T-H", kind: "novel" }, []);
+    expect(sql).toContain("insert into public.books (slug, title, lang, type_code, kind)");
+    expect(sql).toContain("'ar', 'INFJ-T-H', 'novel')");
   });
 });

@@ -58,6 +58,8 @@ export const contents: Contents = {
 };
 
 export const books: LibraryBook[] = [
-  { slug: "fixture-book", title: "نسخة القارئ التجريبية", lang: "ar", position: 3 },
-  { slug: "fixture-book-2", title: "كتاب ثانٍ بعنوان أطول قليلًا من الأول", lang: "ar", position: null },
+  { slug: "fixture-book", title: "نسخة القارئ التجريبية", lang: "ar", position: 3, type_code: "INFJ-T-H", kind: "encyclopedia" },
+  { slug: "fixture-novel", title: "رواية تجريبية بعنوان أطول قليلًا من غيرها", lang: "ar", position: null, type_code: "INFJ-T-H", kind: "novel" },
+  { slug: "fixture-appendix", title: "ملحقات تجريبية", lang: "ar", position: 2, type_code: "INFJ-T-H", kind: "appendix" },
+  { slug: "fixture-other", title: "كتاب آخر بلا نمط", lang: "ar", position: null, type_code: null, kind: "encyclopedia" },
 ];

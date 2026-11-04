@@ -117,9 +117,13 @@ function dollarTag(texts) {
  * One transaction that adds the book and its chapters. It refuses to touch an
  * existing book: a new edition is imported under a new slug.
  */
-export function toSql({ slug, title, lang }, chapters) {
+export const BOOK_KINDS = ["encyclopedia", "novel", "appendix"];
+
+export function toSql({ slug, title, lang, typeCode = null, kind = "encyclopedia" }, chapters) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`Invalid slug: ${slug}`);
   if (!["ar", "en"].includes(lang)) throw new Error(`Invalid lang: ${lang}`);
+  if (typeCode !== null && !/^[A-Z]{4}(-[A-Z]){0,2}$/.test(typeCode)) throw new Error(`Invalid type: ${typeCode}`);
+  if (!BOOK_KINDS.includes(kind)) throw new Error(`Invalid kind: ${kind}`);
   const q = dollarTag([title, ...chapters.flatMap((c) => [c.title, c.body])]);
   const quote = (text) => `${q}${text}${q}`;
 
@@ -134,8 +138,8 @@ do $check$ begin
   end if;
 end $check$;
 with new_book as (
-  insert into public.books (slug, title, lang)
-  values ('${slug}', ${quote(title)}, '${lang}')
+  insert into public.books (slug, title, lang, type_code, kind)
+  values ('${slug}', ${quote(title)}, '${lang}', ${typeCode ? `'${typeCode}'` : "null"}, '${kind}')
   returning id
 )
 insert into public.chapters (book_id, position, title, body) values
