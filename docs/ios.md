@@ -19,7 +19,7 @@
 2. `npx cap open ios` يفتح المشروع في Xcode.
 3. في Xcode: الهدف App ← Signing & Capabilities ← اختر فريقك (Team). المعرّف `app.qari.reader` كما في أندرويد.
 4. للتجربة على هاتف: وصّله واضغط Run. وللتوزيع: Product ← Archive ← Distribute App ← App Store Connect، ثم TestFlight للمجرّبين.
-5. الأيقونة في `ios/App/App/Assets.xcassets/AppIcon.appiconset`: ضع فيها أيقونة سجيّة بمقاس 1024×1024 قبل الرفع.
+5. الأيقونة في `ios/App/App/Assets.xcassets/AppIcon.appiconset` (1024×1024 بلا شفافية) مأخوذة من `src/app/icon.svg`؛ إن تغيّرت الأيقونة فحدّثها هناك أيضًا.
 
 يتحقق `.github/workflows/ios.yml` من أن المشروع يُبنى للمحاكي بلا توقيع في كل طلب دمج يمسّ `ios/`، ويُشغَّل يدويًا من Actions.
 
