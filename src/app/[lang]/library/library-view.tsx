@@ -40,8 +40,13 @@ function byType(books: LibraryBook[]) {
   const types = new Map<string, LibraryBook[]>();
   const others: LibraryBook[] = [];
   for (const book of books) {
-    if (!book.type_code) others.push(book);
-    else types.set(book.type_code, [...(types.get(book.type_code) ?? []), book]);
+    if (!book.type_code) {
+      others.push(book);
+      continue;
+    }
+    const list = types.get(book.type_code) ?? [];
+    list.push(book);
+    types.set(book.type_code, list);
   }
   return { types: [...types.entries()], others };
 }
@@ -101,27 +106,40 @@ export function LibraryShelves({
         </p>
       )}
 
-      {types.map(([typeCode, typeBooks]) => (
-        <TypeCard key={typeCode} typeCode={typeCode} books={typeBooks} lang={lang} dict={dict} />
-      ))}
-
-      {others.length > 0 && (
+      {(types.length > 0 || others.length > 0) && (
         <section aria-labelledby="books-title" className="flex flex-col gap-4">
           <h2 id="books-title" className="font-heading text-lg font-semibold">
-            {types.length > 0 ? dict.library.otherBooks : dict.library.books}
+            {dict.library.books}
           </h2>
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {others.map((book) => (
-              <li key={book.slug}>
-                <BookCard book={book} lang={lang} dict={dict} />
-              </li>
-            ))}
-          </ul>
+          {types.map(([typeCode, typeBooks]) => (
+            <TypeCard
+              key={typeCode}
+              typeCode={typeCode}
+              books={typeBooks}
+              withTest={types.length === 1}
+              lang={lang}
+              dict={dict}
+            />
+          ))}
+          {others.length > 0 && (
+            <>
+              {types.length > 0 && (
+                <h3 className="mt-2 font-heading font-semibold text-muted">{dict.library.otherBooks}</h3>
+              )}
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {others.map((book) => (
+                  <li key={book.slug}>
+                    <BookCard book={book} lang={lang} dict={dict} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
       )}
 
-      {/* Each type's card has the test; without one, it stands on its own. */}
-      {types.length === 0 && (
+      {/* The test is one per account: inside the card of the reader's only type, else on its own. */}
+      {types.length !== 1 && (
         <section aria-labelledby="tests-title" className="flex flex-col gap-4">
           <h2 id="tests-title" className="font-heading text-lg font-semibold">
             {dict.library.tools}
@@ -140,11 +158,13 @@ export function LibraryShelves({
 function TypeCard({
   typeCode,
   books,
+  withTest,
   lang,
   dict,
 }: {
   typeCode: string;
   books: LibraryBook[];
+  withTest: boolean;
   lang: Locale;
   dict: Dictionary;
 }) {
@@ -157,9 +177,9 @@ function TypeCard({
         </span>
         <div className="flex min-w-0 flex-col">
           <span className="text-xs text-muted">{dict.library.typeLabel}</span>
-          <h2 id={titleId} className="font-heading text-2xl font-bold tracking-wide">
+          <h3 id={titleId} className="font-heading text-2xl font-bold tracking-wide">
             <bdi dir="ltr">{typeCode}</bdi>
-          </h2>
+          </h3>
           <span className="text-sm text-muted">{dict.library.typeLead}</span>
         </div>
       </header>
@@ -170,10 +190,10 @@ function TypeCard({
           if (ofKind.length === 0) return null;
           return (
             <section key={kind} className="flex flex-col gap-3 p-5">
-              <h3 className="flex items-center gap-2 font-heading text-sm font-semibold text-muted">
+              <h4 className="flex items-center gap-2 font-heading text-sm font-semibold text-muted">
                 <Icon size={16} aria-hidden className="text-accent" />
                 {dict.library.kinds[kind]}
-              </h3>
+              </h4>
               <ul className="flex flex-col gap-3">
                 {ofKind.map((book) => (
                   <li key={book.slug}>
@@ -185,26 +205,62 @@ function TypeCard({
           );
         })}
 
-        <section className="flex flex-wrap items-center justify-between gap-3 p-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-              <ClipboardCheck size={20} aria-hidden />
-            </span>
-            <div className="flex min-w-0 flex-col">
-              <h3 className="font-heading font-semibold">{dict.library.testTitle}</h3>
-              <p className="text-sm leading-relaxed text-muted">{dict.library.testLead}</p>
+        {withTest && (
+          <section className="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <ClipboardCheck size={20} aria-hidden />
+              </span>
+              <div className="flex min-w-0 flex-col">
+                <h4 className="font-heading font-semibold">{dict.library.testTitle}</h4>
+                <p className="text-sm leading-relaxed text-muted">{dict.library.testLead}</p>
+              </div>
             </div>
-          </div>
-          <Link
-            href={`/${lang}/test`}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-background"
-          >
-            {dict.library.testOpen}
-            <ArrowLeft size={16} aria-hidden className="ltr:-scale-x-100" />
-          </Link>
-        </section>
+            <TestLink lang={lang} dict={dict} />
+          </section>
+        )}
       </div>
     </article>
+  );
+}
+
+/** How far the reader got in a book. */
+function progressText(book: LibraryBook, dict: Dictionary) {
+  return book.position ? format(dict.library.reachedChapter, { n: book.position }) : dict.library.notStarted;
+}
+
+/** Continue (or start) reading, and the contents page. */
+function ReadingLinks({ book, lang, dict }: { book: LibraryBook; lang: Locale; dict: Dictionary }) {
+  return (
+    <div className="flex shrink-0 flex-wrap gap-2">
+      <Link
+        prefetch={false}
+        href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
+        className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 font-heading text-sm text-accent-foreground transition-opacity hover:opacity-90"
+      >
+        <BookOpen size={16} aria-hidden />
+        {book.position ? dict.library.continue : dict.library.start}
+      </Link>
+      <Link
+        href={`/${lang}/read/${book.slug}`}
+        className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm transition-colors hover:bg-surface"
+      >
+        <ListOrdered size={16} aria-hidden />
+        {dict.library.contents}
+      </Link>
+    </div>
+  );
+}
+
+function TestLink({ lang, dict }: { lang: Locale; dict: Dictionary }) {
+  return (
+    <Link
+      href={`/${lang}/test`}
+      className="inline-flex items-center gap-2 self-start rounded-full bg-accent px-4 py-2.5 font-heading text-sm text-accent-foreground transition-opacity hover:opacity-90"
+    >
+      {dict.library.testOpen}
+      <ArrowLeft size={16} aria-hidden className="ltr:-scale-x-100" />
+    </Link>
   );
 }
 
@@ -213,30 +269,12 @@ function BookRow({ book, lang, dict }: { book: LibraryBook; lang: Locale; dict: 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1">
-        <h4 lang={book.lang} dir={dir(book.lang)} className="font-heading leading-snug font-semibold">
+        <h5 lang={book.lang} dir={dir(book.lang)} className="font-heading leading-snug font-semibold">
           {book.title}
-        </h4>
-        <p className="text-sm text-muted">
-          {book.position ? format(dict.library.reachedChapter, { n: book.position }) : dict.library.notStarted}
-        </p>
+        </h5>
+        <p className="text-sm text-muted">{progressText(book, dict)}</p>
       </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
-        <Link
-          prefetch={false}
-          href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
-          className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 font-heading text-sm text-accent-foreground transition-opacity hover:opacity-90"
-        >
-          <BookOpen size={16} aria-hidden />
-          {book.position ? dict.library.continue : dict.library.start}
-        </Link>
-        <Link
-          href={`/${lang}/read/${book.slug}`}
-          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-surface"
-        >
-          <ListOrdered size={16} aria-hidden />
-          {dict.library.contents}
-        </Link>
-      </div>
+      <ReadingLinks book={book} lang={lang} dict={dict} />
     </div>
   );
 }
@@ -264,28 +302,10 @@ function BookCard({ book, lang, dict }: { book: LibraryBook; lang: Locale; dict:
           <h3 lang={book.lang} dir={dir(book.lang)} className="font-heading text-lg leading-snug font-semibold">
             {book.title}
           </h3>
-          <p className="text-sm text-muted">
-            {book.position
-              ? format(dict.library.reachedChapter, { n: book.position })
-              : dict.library.notStarted}
-          </p>
+          <p className="text-sm text-muted">{progressText(book, dict)}</p>
         </div>
-        <div className="mt-auto flex flex-wrap gap-2">
-          <Link
-            prefetch={false}
-            href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 font-heading text-sm text-accent-foreground transition-opacity hover:opacity-90"
-          >
-            <BookOpen size={16} aria-hidden />
-            {book.position ? dict.library.continue : dict.library.start}
-          </Link>
-          <Link
-            href={`/${lang}/read/${book.slug}`}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm transition-colors hover:bg-background"
-          >
-            <ListOrdered size={16} aria-hidden />
-            {dict.library.contents}
-          </Link>
+        <div className="mt-auto">
+          <ReadingLinks book={book} lang={lang} dict={dict} />
         </div>
       </div>
     </article>
@@ -301,13 +321,9 @@ function TestCard({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           <h3 className="font-heading text-lg leading-snug font-semibold">{dict.library.testTitle}</h3>
           <p className="text-sm leading-relaxed text-muted">{dict.library.testLead}</p>
         </div>
-        <Link
-          href={`/${lang}/test`}
-          className="mt-auto inline-flex items-center gap-2 self-start rounded-full bg-accent px-4 py-2.5 font-heading text-sm text-accent-foreground transition-opacity hover:opacity-90"
-        >
-          {dict.library.testOpen}
-          <ArrowLeft size={16} aria-hidden className="ltr:-scale-x-100" />
-        </Link>
+        <div className="mt-auto">
+          <TestLink lang={lang} dict={dict} />
+        </div>
       </div>
     </article>
   );

@@ -113,17 +113,22 @@ function dollarTag(texts) {
   }
 }
 
-/**
- * One transaction that adds the book and its chapters. It refuses to touch an
- * existing book: a new edition is imported under a new slug.
- */
 export const BOOK_KINDS = ["encyclopedia", "novel", "appendix"];
 
-export function toSql({ slug, title, lang, typeCode = null, kind = "encyclopedia" }, chapters) {
+/** Throws on a slug, language, type or kind the database would refuse. */
+export function checkBookMeta({ slug, lang, typeCode = null, kind = "encyclopedia" }) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`Invalid slug: ${slug}`);
   if (!["ar", "en"].includes(lang)) throw new Error(`Invalid lang: ${lang}`);
   if (typeCode !== null && !/^[A-Z]{4}(-[A-Z]){0,2}$/.test(typeCode)) throw new Error(`Invalid type: ${typeCode}`);
   if (!BOOK_KINDS.includes(kind)) throw new Error(`Invalid kind: ${kind}`);
+}
+
+/**
+ * One transaction that adds the book and its chapters. It refuses to touch an
+ * existing book: a new edition is imported under a new slug.
+ */
+export function toSql({ slug, title, lang, typeCode = null, kind = "encyclopedia" }, chapters) {
+  checkBookMeta({ slug, lang, typeCode, kind });
   const q = dollarTag([title, ...chapters.flatMap((c) => [c.title, c.body])]);
   const quote = (text) => `${q}${text}${q}`;
 
