@@ -59,7 +59,9 @@ begin
         ), '[]'::jsonb)
       ) order by i.created_at desc)
       from public.invites i
-      where not exists (select 1 from public.readers r where r.email = i.email)
+      -- Not used = nobody has signed in with that email yet (the owner's own
+      -- invite makes no reader row, so readers is not the right test).
+      where not exists (select 1 from auth.users u where lower(u.email) = i.email)
     ), '[]'::jsonb),
     'reads', coalesce((
       select jsonb_agg(row_to_json(x)::jsonb order by x.opened_at desc)

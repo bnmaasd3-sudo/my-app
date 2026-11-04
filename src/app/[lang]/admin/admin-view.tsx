@@ -115,7 +115,7 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
                 </div>
               </div>
 
-              <ResendWelcome email={reader.email} name={reader.name} lang={lang} dict={t} />
+              {reader.active && <ResendWelcome email={reader.email} name={reader.name} lang={lang} dict={t} />}
 
               <div className="flex flex-wrap gap-2">
                 {books.map((book) => {

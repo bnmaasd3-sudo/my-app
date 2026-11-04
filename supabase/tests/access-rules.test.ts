@@ -396,6 +396,15 @@ describe("owner panel", () => {
     expect(new Date(infj!.last_sign_in_at!).toISOString()).toBe("2026-11-04T08:00:00.000Z");
     expect(data.readers.find((r) => r.email === "esfj@example.com")!.last_sign_in_at).toBeNull();
     expect(data.invites).toEqual([{ email: "waiting@example.com", name: "Huda", created_at: expect.any(String), books: ["INFJ"] }]);
+
+    // An invitation counts as used once someone signs in with it, reader row or not (the owner's own invite).
+    await as("service_role", null, `insert into public.invites (email, is_admin) values ('owner@example.com', true)`);
+    const [{ data: again }] = await as<{ data: { invites: { email: string }[] } }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_dashboard() as data`,
+    );
+    expect(again.invites.map((i) => i.email)).toEqual(["waiting@example.com"]);
   });
 
   it("refuses a sign-up from an email nobody invited", async () => {

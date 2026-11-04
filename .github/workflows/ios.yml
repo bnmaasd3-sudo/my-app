@@ -23,8 +23,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx cap sync ios
-      - name: Check that screen protection is in place
-        run: grep -q "ScreenGuard.hideFromScreenshots" ios/App/App/SceneDelegate.swift
+      # Only shows the protection is still wired in; whether screenshots come out
+      # blank must be tried on a device (docs/ios.md), as no runner can take one.
+      - name: Check that screen protection is still wired in
+        run: grep -q "ScreenGuard.hideFromScreenshots(content)" ios/App/App/SceneDelegate.swift
       - name: Build for the simulator
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App \

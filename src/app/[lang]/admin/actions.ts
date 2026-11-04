@@ -17,8 +17,16 @@ export type AddReaderState = {
 
 export type ResendState = { status: "idle" | MailResult | "error" };
 
-/** The welcome email, in the language the owner is using the panel in. */
+/** The welcome email, in the language the owner is using the panel in. Never throws. */
 async function sendWelcome(email: string, name: string | null, lang: Locale): Promise<MailResult> {
+  try {
+    return await composeAndSend(email, name, lang);
+  } catch {
+    return "failed";
+  }
+}
+
+async function composeAndSend(email: string, name: string | null, lang: Locale): Promise<MailResult> {
   const dict = await getDictionary(lang);
   return sendMail(
     welcomeMail({
@@ -62,9 +70,12 @@ export async function addReader(_previous: AddReaderState, formData: FormData): 
   });
   if (error) return { status: "error", error: "generic" };
 
-  const mail = await sendWelcome(email, name || null, localeOf(formData));
   refresh();
-  return { status: data === "linked" ? "linked" : "invited", mail };
+  if (data === "linked") return { status: "linked" };
+  // A new invitation: tell them the book is there and how to sign in. Someone
+  // who already has an account just finds the book in their library.
+  const mail = await sendWelcome(email, name || null, localeOf(formData));
+  return { status: "invited", mail };
 }
 
 /** Sends the welcome again to a reader or an invited email. Owner only. */

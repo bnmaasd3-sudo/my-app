@@ -8,15 +8,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = CAPBridgeViewController()
+        // Info.plist names Main.storyboard for the scene, so UIKit may already have
+        // made the window and its Capacitor bridge; make one only if it has not,
+        // so there is never a second bridge.
+        if window == nil {
+            let window = UIWindow(windowScene: windowScene)
+            window.rootViewController = CAPBridgeViewController()
+            self.window = window
+        }
+        guard let window = window else { return }
         window.makeKeyAndVisible()
-        self.window = window
 
         // Screen protection (see docs/ios.md). iOS has no FLAG_SECURE: the app's
         // content goes inside the layer iOS keeps out of screenshots for secure
         // text fields, and a cover hides it while the screen is recorded or mirrored.
-        ScreenGuard.hideFromScreenshots(window)
+        if let content = window.rootViewController?.view {
+            DispatchQueue.main.async { ScreenGuard.hideFromScreenshots(content) }
+        }
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(captureChanged),
@@ -52,22 +60,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 
 enum ScreenGuard {
-    /// Moves the window's layer inside a secure text field's container layer, which
-    /// iOS leaves blank in screenshots and in the app switcher. If a future iOS
-    /// changes that container, the app still works, only without this protection.
-    static func hideFromScreenshots(_ window: UIWindow) {
+    /// Moves the content view's layer inside a secure text field's container layer,
+    /// which iOS leaves blank in screenshots and in the app switcher. The view stays
+    /// where it is in the view hierarchy, so touches and layout are unchanged; only
+    /// its layer is drawn through the secure container. If the container is not
+    /// there (a future iOS may change it), nothing is moved and the app runs as is.
+    static func hideFromScreenshots(_ content: UIView) {
+        guard let host = content.layer.superlayer else { return }
         let field = UITextField()
         field.isSecureTextEntry = true
         field.isUserInteractionEnabled = false
         field.translatesAutoresizingMaskIntoConstraints = false
-        window.addSubview(field)
+        content.addSubview(field)
         NSLayoutConstraint.activate([
-            field.centerXAnchor.constraint(equalTo: window.centerXAnchor),
-            field.centerYAnchor.constraint(equalTo: window.centerYAnchor),
+            field.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+            field.centerYAnchor.constraint(equalTo: content.centerYAnchor),
         ])
-        guard let container = field.layer.sublayers?.first else { return }
-        window.layer.superlayer?.addSublayer(field.layer)
-        container.addSublayer(window.layer)
+        field.layoutIfNeeded()
+        guard let container = field.layer.sublayers?.first else {
+            field.removeFromSuperview()
+            return
+        }
+        // The field's layer goes up beside the content, then the content goes into
+        // the field's secure container: no layer ends up inside itself.
+        host.addSublayer(field.layer)
+        container.addSublayer(content.layer)
     }
 
     /// A plain cover in the app's background colour.
