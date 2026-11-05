@@ -42,6 +42,19 @@
   --scrim: rgb(0 0 0 / 0.55);
 }
 
+/* Sepia: warm paper for long reading, chosen in the reading settings. */
+[data-theme="sepia"] {
+  --background: #f3ead6;
+  --foreground: #3a2e20;
+  --muted: #76664f;
+  --surface: #ebe0c7;
+  --border: #dccdab;
+  --accent: #0e5752;
+  --accent-foreground: #fbf6ea;
+  --figure: #fbf6ea;
+  --scrim: rgb(58 46 32 / 0.45);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -158,3 +171,7 @@ body {
     display: none !important;
   }
 }
+
+/* Line width, on top of the layout (it comes last so it wins at equal weight). */
+[data-reader][data-width="narrow"] .reader-column { max-width: 34rem; }
+[data-reader][data-width="wide"] .reader-column { max-width: 56rem; }

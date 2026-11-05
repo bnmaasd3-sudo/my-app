@@ -4,7 +4,7 @@ import { dir, hasLocale, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { BookMarkdown } from "./book-markdown";
 import { ChapterList } from "./chapter-list";
-import { isFontSize, isLayout, isTheme } from "@/lib/reader-prefs";
+import { isFontSize, isLayout, isTheme, isWidth } from "@/lib/reader-prefs";
 import { ReaderFrame } from "./reader-frame";
 import { ReaderSignature } from "./reader-signature";
 
@@ -21,7 +21,7 @@ export type OpenedChapter = {
   reader: { name: string; email: string };
 };
 
-export type ReaderPrefs = { font_size?: string; theme?: string; layout?: string } | null;
+export type ReaderPrefs = { font_size?: string; theme?: string; layout?: string; width?: string } | null;
 
 /** The reading screen for one chapter. */
 export function ChapterView({
@@ -63,6 +63,7 @@ export function ChapterView({
       initialFontSize={isFontSize(prefs?.font_size) ? prefs.font_size : "md"}
       initialTheme={isTheme(prefs?.theme) ? prefs.theme : "system"}
       initialLayout={isLayout(prefs?.layout) ? prefs.layout : "auto"}
+      initialWidth={isWidth(prefs?.width) ? prefs.width : null}
       labels={dict.reader}
       backHref={base}
       previousHref={previousHref}

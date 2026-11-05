@@ -222,6 +222,25 @@ describe("direct table access", () => {
     ).rejects.toThrow(/row-level security/);
   });
 
+  it("saves sepia and the line width, and refuses unknown ones", async () => {
+    await as(
+      "authenticated",
+      INFJ_READER,
+      `insert into public.reader_prefs (reader_id, theme, width) values ($1, 'sepia', 'narrow')`,
+      [INFJ_READER],
+    );
+    await expect(
+      as("authenticated", INFJ_READER, `update public.reader_prefs set width = 'huge' where reader_id = $1`, [
+        INFJ_READER,
+      ]),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as("authenticated", INFJ_READER, `update public.reader_prefs set theme = 'neon' where reader_id = $1`, [
+        INFJ_READER,
+      ]),
+    ).rejects.toThrow(/check constraint/);
+  });
+
   it("saves the reading layout and refuses unknown ones", async () => {
     await as(
       "authenticated",

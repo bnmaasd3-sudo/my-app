@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { DEVICE_COOKIE } from "@/lib/device";
-import { isFontSize, isLayout, isTheme } from "@/lib/reader-prefs";
+import { isFontSize, isLayout, isTheme, isWidth } from "@/lib/reader-prefs";
 import { siteOrigin } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -94,17 +94,20 @@ export async function saveProgress(bookSlug: string, position: number, scrollRat
   });
 }
 
-export async function savePrefs(fontSize: string, theme: string, layout: string) {
-  if (!isFontSize(fontSize) || !isTheme(theme) || !isLayout(layout)) return;
+/**
+ * Saves the reader's display choices. Sepia and the line width need migration
+ * 20261105070000; until it is applied the row keeps the rest (sepia stored as
+ * light) and the reading screen keeps sepia and the width on the device.
+ */
+export async function savePrefs(fontSize: string, theme: string, layout: string, width: string = "md") {
+  if (!isFontSize(fontSize) || !isTheme(theme) || !isLayout(layout) || !isWidth(width)) return;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const readerId = data?.claims?.sub;
   if (!readerId) return;
-  await supabase.from("reader_prefs").upsert({
-    reader_id: readerId,
-    font_size: fontSize,
-    theme,
-    layout,
-    updated_at: new Date().toISOString(),
-  });
+  const row = { reader_id: readerId, font_size: fontSize, theme, layout, updated_at: new Date().toISOString() };
+  const { error } = await supabase.from("reader_prefs").upsert({ ...row, width });
+  if (error) {
+    await supabase.from("reader_prefs").upsert({ ...row, theme: theme === "sepia" ? "light" : theme });
+  }
 }
