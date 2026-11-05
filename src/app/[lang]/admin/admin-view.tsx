@@ -80,7 +80,12 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
       <AddReaderForm books={books} lang={lang} dict={t} />
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-xl font-semibold">{t.books}</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-heading text-xl font-semibold">{t.books}</h2>
+          <Link href={`/${lang}/admin/books`} className="text-sm text-accent hover:underline">
+            {t.bookImport.open}
+          </Link>
+        </div>
         <ul className="grid gap-2 sm:grid-cols-2">
           {books.map((book) => (
             <li key={book.slug} className="rounded-xl border border-border bg-surface px-4 py-3">

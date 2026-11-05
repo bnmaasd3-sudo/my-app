@@ -6,6 +6,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { isLayout } from "@/lib/reader-prefs";
 import { TEST_DATA } from "@/lib/test-data";
+import { BookImport } from "../../admin/books/book-import";
 import { LibraryFrame, LibraryShelves } from "../../library/library-view";
 import { ContentsFrame, ContentsView } from "../../read/[book]/contents-view";
 import { ChapterView } from "../../read/chapter-view";
@@ -79,6 +80,24 @@ async function Screen({
           lang={lang}
           dict={dict}
         />
+      );
+    case "books":
+      // The owner's book import, with two made-up books (nothing is saved without the owner's session).
+      return (
+        <main className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-6 px-5 py-8">
+          <BookImport
+            books={books.slice(0, 2).map((book) => ({
+              slug: book.slug,
+              title: book.title,
+              lang: book.lang,
+              typeCode: book.type_code,
+              kind: book.kind,
+              chapters: book.chapters,
+            }))}
+            labels={dict.admin.bookImport}
+            kinds={dict.library.kinds}
+          />
+        </main>
       );
     case "test":
       // The real test with its real data, saving nothing.
