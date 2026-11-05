@@ -89,7 +89,8 @@
     "themes": {
       "system": "Auto",
       "light": "Day",
-      "dark": "Night"
+      "dark": "Night",
+      "sepia": "Sepia"
     },
     "layout": "Layout",
     "layouts": {
@@ -104,7 +105,13 @@
     "lastPosition": "Last position",
     "reading": "Reading now",
     "licensedTo": "Licensed to",
-    "endOfBook": "End of the book"
+    "endOfBook": "End of the book",
+    "width": "Line width",
+    "widths": {
+      "narrow": "Narrow",
+      "md": "Medium",
+      "wide": "Wide"
+    }
   },
   "errors": {
     "notEntitled": "This book isn't in your library.",

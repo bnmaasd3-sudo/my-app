@@ -4,13 +4,17 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Coffee,
   Laptop,
   List,
   Monitor,
   MonitorSmartphone,
   Moon,
+  RectangleHorizontal,
+  RectangleVertical,
   Settings2,
   Smartphone,
+  Square,
   Sun,
   Type,
   X,
@@ -27,7 +31,18 @@ import {
   type RefObject,
 } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { FONT_SIZES, LAYOUTS, THEMES, type FontSize, type Layout, type Theme } from "@/lib/reader-prefs";
+import {
+  FONT_SIZES,
+  LAYOUTS,
+  THEMES,
+  WIDTHS,
+  isTheme,
+  isWidth,
+  type FontSize,
+  type Layout,
+  type Theme,
+  type Width,
+} from "@/lib/reader-prefs";
 import { format } from "@/i18n/format";
 import { saveProgress, savePrefs } from "../actions";
 
@@ -48,6 +63,8 @@ type Props = {
   initialFontSize: FontSize;
   initialTheme: Theme;
   initialLayout: Layout;
+  /** Null when the saved choices have no width yet (migration not applied, or never chosen). */
+  initialWidth: Width | null;
   labels: Dictionary["reader"];
   backHref: string;
   previousHref: string | null;
@@ -57,7 +74,10 @@ type Props = {
   children: ReactNode;
 };
 
-const THEME_ICONS: Record<Theme, LucideIcon> = { system: Monitor, light: Sun, dark: Moon };
+const THEME_ICONS: Record<Theme, LucideIcon> = { system: Monitor, light: Sun, dark: Moon, sepia: Coffee };
+const WIDTH_ICONS: Record<Width, LucideIcon> = { narrow: RectangleVertical, md: Square, wide: RectangleHorizontal };
+/** Sepia and the width, kept on the device until the reader_prefs migration is applied. */
+const LOCAL_LOOK = "sajiyya_reader_look";
 const LAYOUT_ICONS: Record<Layout, LucideIcon> = {
   auto: MonitorSmartphone,
   mobile: Smartphone,
@@ -87,6 +107,7 @@ export function ReaderFrame({
   initialFontSize,
   initialTheme,
   initialLayout,
+  initialWidth,
   labels,
   backHref,
   previousHref,
@@ -97,6 +118,7 @@ export function ReaderFrame({
   const [fontSize, setFontSize] = useState(initialFontSize);
   const [theme, setTheme] = useState(initialTheme);
   const [layout, setLayout] = useState(initialLayout);
+  const [width, setWidth] = useState<Width>(initialWidth ?? "md");
   const [, startTransition] = useTransition();
   const lastSaved = useRef(initialRatio);
   const contentsDialog = useRef<HTMLDialogElement>(null);
@@ -134,22 +156,43 @@ export function ReaderFrame({
     };
   }, [bookSlug, position, initialRatio]);
 
+  // Without a width in the saved choices, sepia and the width come from this device.
+  useEffect(() => {
+    if (initialWidth !== null) return;
+    try {
+      const local = JSON.parse(localStorage.getItem(LOCAL_LOOK) ?? "{}") as { theme?: unknown; width?: unknown };
+      // Known only in the browser, so set after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (isWidth(local.width)) setWidth(local.width);
+      if (isTheme(local.theme) && local.theme === "sepia") setTheme("sepia");
+    } catch {
+      // Storage blocked or unreadable: the saved choices stand.
+    }
+  }, [initialWidth]);
+
   // A new chapter closes any open panel.
   useEffect(() => {
     contentsDialog.current?.close();
     settingsDialog.current?.close();
   }, [position]);
 
-  const update = (next: { fontSize?: FontSize; theme?: Theme; layout?: Layout }) => {
+  const update = (next: { fontSize?: FontSize; theme?: Theme; layout?: Layout; width?: Width }) => {
     const prefs = {
       fontSize: next.fontSize ?? fontSize,
       theme: next.theme ?? theme,
       layout: next.layout ?? layout,
+      width: next.width ?? width,
     };
     setFontSize(prefs.fontSize);
     setTheme(prefs.theme);
     setLayout(prefs.layout);
-    startTransition(() => savePrefs(prefs.fontSize, prefs.theme, prefs.layout));
+    setWidth(prefs.width);
+    try {
+      localStorage.setItem(LOCAL_LOOK, JSON.stringify({ theme: prefs.theme, width: prefs.width }));
+    } catch {
+      // Nothing to keep on this device; the account still saves them.
+    }
+    startTransition(() => savePrefs(prefs.fontSize, prefs.theme, prefs.layout, prefs.width));
   };
 
   return (
@@ -157,6 +200,7 @@ export function ReaderFrame({
       data-reader
       data-font={fontSize}
       data-layout={layout}
+      data-width={width}
       data-theme={theme === "system" ? undefined : theme}
       className="min-h-dvh bg-background text-foreground"
       onContextMenu={(event) => event.preventDefault()}
@@ -245,6 +289,15 @@ export function ReaderFrame({
             })}
             value={layout}
             onChange={(value) => update({ layout: value })}
+          />
+          <Choice
+            legend={labels.width}
+            options={WIDTHS.map((value) => {
+              const Icon = WIDTH_ICONS[value];
+              return { value, label: labels.widths[value], icon: <Icon size={18} aria-hidden /> };
+            })}
+            value={width}
+            onChange={(value) => update({ width: value })}
           />
         </div>
       </Panel>

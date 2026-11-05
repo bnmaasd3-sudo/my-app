@@ -89,7 +89,8 @@
     "themes": {
       "system": "تلقائي",
       "light": "نهاري",
-      "dark": "ليلي"
+      "dark": "ليلي",
+      "sepia": "ورقي"
     },
     "layout": "طريقة العرض",
     "layouts": {
@@ -104,7 +105,13 @@
     "lastPosition": "آخر موضع",
     "reading": "تقرأ الآن",
     "licensedTo": "نسخة خاصة بـ",
-    "endOfBook": "انتهى الكتاب"
+    "endOfBook": "انتهى الكتاب",
+    "width": "عرض السطر",
+    "widths": {
+      "narrow": "ضيق",
+      "md": "متوسط",
+      "wide": "واسع"
+    }
   },
   "errors": {
     "notEntitled": "هذا الكتاب ليس في مكتبتك.",

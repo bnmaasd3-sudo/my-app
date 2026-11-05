@@ -47,7 +47,8 @@ async function Chapter({
       p_position: position,
       p_device_id: deviceId,
     }),
-    supabase.from("reader_prefs").select("font_size, theme, layout").maybeSingle(),
+    // "*": the width column arrives with a migration, and naming it before then would fail the read.
+    supabase.from("reader_prefs").select("*").maybeSingle(),
     supabase.rpc("book_toc", { p_book_slug: book }),
   ]);
 
