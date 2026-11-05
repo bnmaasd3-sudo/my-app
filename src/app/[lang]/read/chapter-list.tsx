@@ -12,7 +12,7 @@ type Props = {
   /** The chapter that carries the badge, and the badge's text. */
   marked: number | null;
   badge: string;
-  /** Larger cards for the contents page; compact rows beside the text. */
+  /** Plain rows between hairlines on the contents page; compact rows beside the text. */
   variant: "page" | "compact";
 };
 
@@ -21,7 +21,11 @@ export function ChapterList({ chapters, base, bookLang, lang, marked, badge, var
   const page = variant === "page";
 
   return (
-    <ol lang={bookLang} dir={dir(bookLang)} className={`flex flex-col ${page ? "gap-2" : "gap-0.5"}`}>
+    <ol
+      lang={bookLang}
+      dir={dir(bookLang)}
+      className={page ? "flex flex-col divide-y divide-border border-y border-border" : "flex flex-col gap-0.5"}
+    >
       {chapters.map((chapter) => {
         const current = chapter.position === marked;
         return (
@@ -32,30 +36,35 @@ export function ChapterList({ chapters, base, bookLang, lang, marked, badge, var
               aria-current={current ? "page" : undefined}
               className={
                 page
-                  ? "group flex items-center gap-4 rounded-2xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-accent/50 aria-[current=page]:border-accent aria-[current=page]:bg-accent/5"
+                  ? "group flex items-baseline gap-4 py-4 transition-colors hover:text-accent aria-[current=page]:text-accent"
                   : "group flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors hover:bg-background aria-[current=page]:bg-accent/10"
               }
             >
-              <span
-                aria-hidden
-                className={`inline-flex shrink-0 items-center justify-center rounded-full border border-border font-heading tabular-nums text-muted group-aria-[current=page]:border-accent group-aria-[current=page]:bg-accent group-aria-[current=page]:text-accent-foreground ${page ? "size-9 text-sm" : "size-7 text-xs"}`}
-              >
-                {chapter.position}
-              </span>
-              <span className="min-w-0 flex-1 leading-relaxed group-aria-[current=page]:font-semibold">
-                {chapter.title}
-              </span>
-              {current && (
+              {page ? (
+                <span aria-hidden className="w-7 shrink-0 font-heading text-sm tabular-nums text-muted group-aria-[current=page]:text-accent">
+                  {chapter.position}
+                </span>
+              ) : (
                 <span
-                  lang={lang}
-                  dir={dir(lang)}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent"
+                  aria-hidden
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-border font-heading text-xs tabular-nums text-muted group-aria-[current=page]:border-accent group-aria-[current=page]:bg-accent group-aria-[current=page]:text-accent-foreground"
                 >
-                  <Bookmark size={12} aria-hidden className="fill-current" />
-                  {page && badge}
-                  {!page && <span className="sr-only">{badge}</span>}
+                  {chapter.position}
                 </span>
               )}
+              <span className="min-w-0 flex-1 group-aria-[current=page]:font-semibold">{chapter.title}</span>
+              {current &&
+                (page ? (
+                  // Where the reader stopped, as quiet text.
+                  <span lang={lang} dir={dir(lang)} className="shrink-0 text-sm">
+                    {badge}
+                  </span>
+                ) : (
+                  <span className="inline-flex shrink-0 items-center text-accent">
+                    <Bookmark size={12} aria-hidden className="fill-current" />
+                    <span className="sr-only">{badge}</span>
+                  </span>
+                ))}
             </Link>
           </li>
         );

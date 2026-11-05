@@ -1,27 +1,29 @@
 @import "tailwindcss";
 
+/* One system for every page: paper and ink, one deep teal accent, and the
+   same tokens for the dark theme (warm near-black, never pure black). */
 :root,
 [data-theme="light"] {
-  --background: #faf7f2;
-  --foreground: #1f1b16;
-  --muted: #6b6258;
-  --surface: #ffffff;
-  --border: #e7e0d5;
-  --accent: #0f5c5a;
-  --accent-foreground: #ffffff;
+  --background: #f7f4ee;
+  --foreground: #1d1a16;
+  --muted: #6b6359;
+  --surface: #efe9df;
+  --border: #e0d8cb;
+  --accent: #0e5752;
+  --accent-foreground: #fbf9f5;
   --figure: #ffffff;
-  --scrim: rgb(31 27 22 / 0.45);
+  --scrim: rgb(29 26 22 / 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a1714;
-    --foreground: #ebe3d6;
-    --muted: #a69b8c;
-    --surface: #231f1b;
-    --border: #36302a;
-    --accent: #e0b36a;
-    --accent-foreground: #1a1714;
+    --background: #151311;
+    --foreground: #ece5d9;
+    --muted: #a1978a;
+    --surface: #1f1c18;
+    --border: #312c26;
+    --accent: #72b8ae;
+    --accent-foreground: #151311;
     --figure: #e8e2d8;
     --scrim: rgb(0 0 0 / 0.55);
   }
@@ -29,13 +31,13 @@
 
 /* The reader's own choice wins over the phone's setting. */
 [data-theme="dark"] {
-  --background: #1a1714;
-  --foreground: #ebe3d6;
-  --muted: #a69b8c;
-  --surface: #231f1b;
-  --border: #36302a;
-  --accent: #e0b36a;
-  --accent-foreground: #1a1714;
+  --background: #151311;
+  --foreground: #ece5d9;
+  --muted: #a1978a;
+  --surface: #1f1c18;
+  --border: #312c26;
+  --accent: #72b8ae;
+  --accent-foreground: #151311;
   --figure: #e8e2d8;
   --scrim: rgb(0 0 0 / 0.55);
 }
@@ -57,6 +59,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Body text: Naskh at 18px with room between the lines. */
+  font-size: 1.125rem;
+  line-height: 1.9;
 }
 
 /* Reading layouts (see .claude/skills/reader-ui).

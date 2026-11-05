@@ -1,10 +1,7 @@
-import { ClipboardCheck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { dir, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { format } from "@/i18n/format";
-import { typeAccent } from "@/lib/type-accent";
 import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
 
@@ -28,27 +25,33 @@ export function typeSubtitle(code: string, dict: Dictionary) {
   return known[code] ?? dict.library.typeSubtitleDefault;
 }
 
-/** The library page around its tiles. */
+/** A tile: paper surface, no border or shadow; the whole tile is the tap target. */
+export const tileClass =
+  "block rounded-2xl bg-surface px-6 pt-7 pb-6 transition-colors hover:bg-[color-mix(in_oklab,var(--surface),var(--foreground)_4%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+/** The thin accent rule under a tile's or a page's title. */
+export function AccentRule() {
+  return <span aria-hidden className="mt-5 block h-px w-12 bg-accent" />;
+}
+
+/** The library page: one headline, then the tiles. */
 export function LibraryFrame({ lang, dict, children }: { lang: Locale; dict: Dictionary; children: ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-5">
-      <SiteHeader lang={lang} dict={dict} path="/library" signedIn />
-      <main className="flex flex-1 flex-col gap-10 py-10">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-heading text-3xl font-bold">{dict.library.title}</h1>
-          <p className="leading-relaxed text-muted">{dict.library.lead}</p>
-        </div>
+    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-5">
+      <SiteHeader lang={lang} dict={dict} signedIn />
+      <main className="flex flex-1 flex-col gap-8 pt-8 pb-14">
+        <h1 className="font-heading text-2xl font-bold">{dict.library.title}</h1>
         {children}
       </main>
-      <SiteFooter lang={lang} dict={dict} />
+      <SiteFooter lang={lang} dict={dict} path="/library" />
     </div>
   );
 }
 
 /**
- * The reader's library: one plain tile per personality type they own a book
- * of. Everything about the type (its books and the test) is on its own page.
- * `books` is null when the owner is not a reader themselves.
+ * The reader's library: a vertical stack of plain tiles, one per personality
+ * type they own a book of. Everything about the type (its books and the test)
+ * is on its own page. `books` is null when the owner is not a reader themselves.
  */
 export function LibraryShelves({
   lang,
@@ -67,86 +70,52 @@ export function LibraryShelves({
 
   return (
     <>
-      {isAdmin && (
-        <Link
-          href={`/${lang}/admin`}
-          className="inline-flex items-center gap-2 self-start rounded-2xl px-1 py-1 text-sm text-accent hover:underline"
-        >
-          <ShieldCheck size={16} aria-hidden />
-          {dict.admin.open}
-        </Link>
-      )}
+      {books && list.length === 0 && <p className="text-muted">{dict.library.empty}</p>}
 
-      {books && list.length === 0 && <p className="leading-relaxed text-muted">{dict.library.empty}</p>}
-
-      {types.length > 0 && (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {list.length > 0 && (
+        <ul className="flex flex-col gap-3">
           {types.map((code) => (
             <li key={code}>
-              <TypeTile code={code} lang={lang} dict={dict} />
+              <Link href={`/${lang}/type/${encodeURIComponent(code)}`} className={tileClass}>
+                <span className="block font-heading text-5xl leading-none font-bold tracking-wide">
+                  <bdi dir="ltr">{code}</bdi>
+                </span>
+                <AccentRule />
+                <span className="mt-3 block text-sm text-muted">{typeSubtitle(code, dict)}</span>
+              </Link>
+            </li>
+          ))}
+          {/* A book with no type is a tile of its own, opening where the reader stopped. */}
+          {others.map((book) => (
+            <li key={book.slug}>
+              <Link prefetch={false} href={`/${lang}/read/${book.slug}/${book.position ?? 1}`} className={tileClass}>
+                <span lang={book.lang} dir={dir(book.lang)} className="block font-heading text-2xl leading-snug font-bold">
+                  {book.title}
+                </span>
+                <AccentRule />
+                <span className="mt-3 block text-sm text-muted">
+                  {book.position ? dict.type.continue : dict.type.start}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
       )}
 
-      {others.length > 0 && (
-        <section aria-label={dict.library.otherBooks} className="flex flex-col gap-3">
-          {types.length > 0 && (
-            <h2 className="font-heading text-base font-semibold text-muted">{dict.library.otherBooks}</h2>
-          )}
-          <ul className="flex flex-col gap-3">
-            {others.map((book) => (
-              <li key={book.slug}>
-                <Link
-                  prefetch={false}
-                  href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
-                  className="flex items-center justify-between gap-4 rounded-2xl bg-surface px-5 py-5 transition-colors hover:bg-accent/5"
-                >
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span lang={book.lang} dir={dir(book.lang)} className="font-heading font-semibold">
-                      {book.title}
-                    </span>
-                    <span className="text-sm text-muted">{format(dict.type.chapters, { n: book.chapters })}</span>
-                  </span>
-                  <span className="shrink-0 text-sm font-medium text-accent">
-                    {book.position ? dict.type.continue : dict.type.start}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {/* With no type to hold it, the test is reached from here. */}
       {types.length === 0 && (
-        <Link
-          href={`/${lang}/test`}
-          className="flex items-center gap-4 rounded-2xl bg-surface px-5 py-5 transition-colors hover:bg-accent/5"
-        >
-          <ClipboardCheck size={22} aria-hidden className="shrink-0 text-accent" />
-          <span className="font-heading font-semibold">{dict.library.testTitle}</span>
+        <Link href={`/${lang}/test`} className={tileClass}>
+          <span className="block font-heading text-2xl leading-snug font-bold">{dict.library.testTitle}</span>
+          <AccentRule />
+          <span className="mt-3 block text-sm text-muted">{dict.type.testLead}</span>
+        </Link>
+      )}
+
+      {isAdmin && (
+        <Link href={`/${lang}/admin`} className="self-start text-sm text-accent hover:underline">
+          {dict.admin.open}
         </Link>
       )}
     </>
-  );
-}
-
-/** A type as a plain tile: its code, a one-word subtitle and its own accent line. */
-function TypeTile({ code, lang, dict }: { code: string; lang: Locale; dict: Dictionary }) {
-  return (
-    <Link
-      href={`/${lang}/type/${encodeURIComponent(code)}`}
-      style={{ "--type-accent": typeAccent(code) } as CSSProperties}
-      className="flex min-h-40 flex-col justify-between gap-6 rounded-3xl bg-surface px-6 py-6 transition-colors hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-accent"
-    >
-      <span aria-hidden className="h-1 w-10 rounded-full bg-(--type-accent)" />
-      <span className="flex flex-col gap-1">
-        <span className="font-heading text-4xl leading-tight font-bold tracking-wide">
-          <bdi dir="ltr">{code}</bdi>
-        </span>
-        <span className="text-sm text-muted">{typeSubtitle(code, dict)}</span>
-      </span>
-    </Link>
   );
 }

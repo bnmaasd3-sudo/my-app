@@ -21,14 +21,14 @@ export default async function LoginPage({ searchParams }: PageProps<"/[lang]/log
       <SiteHeader lang={lang} dict={dict} />
       <main className="flex flex-1 flex-col justify-center gap-8 py-12">
         <div className="flex flex-col gap-3">
-          <h1 className="font-heading text-3xl font-bold">{dict.login.title}</h1>
-          <p className="leading-relaxed text-muted">{dict.login.lead}</p>
+          <h1 className="font-heading text-2xl font-bold">{dict.login.title}</h1>
+          <p className="text-muted">{dict.login.lead}</p>
         </div>
         <Suspense fallback={<LoginForm action={login.bind(null, lang)} dict={dict.login} />}>
           <LinkAwareForm searchParams={searchParams} lang={lang} dict={dict.login} />
         </Suspense>
       </main>
-      <SiteFooter lang={lang} dict={dict} />
+      <SiteFooter lang={lang} dict={dict} path="/login" />
     </div>
   );
 }
