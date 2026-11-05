@@ -26,7 +26,8 @@ export function ChapterList({ chapters, base, bookLang, lang, marked, badge, var
       dir={dir(bookLang)}
       className={page ? "flex flex-col divide-y divide-border border-y border-border" : "flex flex-col gap-0.5"}
     >
-      {chapters.map((chapter) => {
+      {/* Numbered in order, so chapters hidden for this reader leave no gap. */}
+      {chapters.map((chapter, index) => {
         const current = chapter.position === marked;
         return (
           <li key={chapter.position}>
@@ -42,14 +43,14 @@ export function ChapterList({ chapters, base, bookLang, lang, marked, badge, var
             >
               {page ? (
                 <span aria-hidden className="w-7 shrink-0 font-heading text-sm tabular-nums text-muted group-aria-[current=page]:text-accent">
-                  {chapter.position}
+                  {index + 1}
                 </span>
               ) : (
                 <span
                   aria-hidden
                   className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-border font-heading text-xs tabular-nums text-muted group-aria-[current=page]:border-accent group-aria-[current=page]:bg-accent group-aria-[current=page]:text-accent-foreground"
                 >
-                  {chapter.position}
+                  {index + 1}
                 </span>
               )}
               <span className="min-w-0 flex-1 group-aria-[current=page]:font-semibold">{chapter.title}</span>

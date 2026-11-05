@@ -30,7 +30,7 @@ export function TypeView({
     const ofKind = books.filter((book) => book.kind === kind);
     return ofKind.map((book) => ({
       key: book.slug,
-      href: `/${lang}/read/${book.slug}/${book.position ?? 1}`,
+      href: `/${lang}/read/${book.slug}/${book.position ?? book.first ?? 1}`,
       // A second book of the same kind is told apart by its own title.
       title: ofKind.length > 1 ? book.title : dict.library.kinds[kind],
       titleLang: ofKind.length > 1 ? book.lang : lang,

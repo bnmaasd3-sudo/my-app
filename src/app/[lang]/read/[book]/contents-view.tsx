@@ -10,6 +10,8 @@ export type Contents = {
   book: { slug: string; title: string; lang: string };
   chapters: { position: number; title: string }[];
   position: number | null;
+  /** The first chapter this reader can open. */
+  first?: number | null;
 };
 
 /** The contents page around the chapter list. */
@@ -26,7 +28,7 @@ export function ContentsFrame({ lang, dict, children }: { lang: Locale; dict: Di
 /** A book's card and its numbered chapters, with the last position marked. */
 export function ContentsView({ lang, dict, contents }: { lang: Locale; dict: Dictionary; contents: Contents }) {
   const bookLang = hasLocale(contents.book.lang) ? contents.book.lang : lang;
-  const first = contents.position ?? 1;
+  const first = contents.position ?? contents.first ?? 1;
 
   return (
     <>

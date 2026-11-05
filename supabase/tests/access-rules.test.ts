@@ -344,6 +344,8 @@ describe("owner panel", () => {
       `select public.admin_set_entitlement('${INFJ_READER}', 'esfj-reader', true)`,
       `select public.admin_revoke_device('${ESFJ_READER}', '${DEVICE_1}')`,
       `select public.admin_add_reader('new@example.com', null, 'infj-t-h-reader')`,
+      `select public.admin_reader_chapters('${INFJ_READER}', 'infj-t-h-reader')`,
+      `select public.admin_set_chapter_override('${INFJ_READER}', 'infj-t-h-reader', 2, true)`,
     ]) {
       await expect(as("authenticated", INFJ_READER, call)).rejects.toThrow("not_admin");
     }
@@ -772,3 +774,110 @@ describe("deletion on request (docs/runbook.md)", () => {
   });
 });
 
+
+describe("one reader's copy of a shared book", () => {
+  const SECOND_READER = NEW_USER;
+  const hide = (position: number, body: string | null = null, hidden = true) =>
+    as(
+      "authenticated",
+      OWNER,
+      `select public.admin_set_chapter_override($1, 'infj-t-h-reader', $2, $3, $4, null)`,
+      [INFJ_READER, position, hidden, body],
+    );
+  const toc = (userId: string) =>
+    as<{ data: { chapters: { position: number }[]; position: number | null; first: number | null } }>(
+      "authenticated",
+      userId,
+      `select public.book_toc('infj-t-h-reader') as data`,
+    ).then((rows) => rows[0].data);
+  const library = (userId: string) =>
+    as<{ data: { chapters: number; position: number | null; first: number | null }[] }>(
+      "authenticated",
+      userId,
+      `select public.my_library() as data`,
+    ).then((rows) => rows[0].data[0]);
+
+  beforeEach(async () => {
+    // A second reader of the same book, to show the change is for one reader only.
+    await db.exec(`
+      insert into public.readers (id, email, active) values ('${SECOND_READER}', 'new@example.com', true);
+      insert into public.entitlements (reader_id, book_id, active)
+        select '${SECOND_READER}', b.id, true from public.books b where b.slug = 'infj-t-h-reader';
+    `);
+  });
+
+  it("hides a chapter from that reader only", async () => {
+    await hide(2);
+
+    expect((await toc(INFJ_READER)).chapters.map((c) => c.position)).toEqual([1, 3]);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 2)).rejects.toThrow("chapter_not_found");
+    await expect(
+      as("authenticated", INFJ_READER, `select public.save_progress('infj-t-h-reader', 2, 0.5, '${DEVICE_1}')`),
+    ).rejects.toThrow("chapter_not_found");
+
+    expect((await toc(SECOND_READER)).chapters.map((c) => c.position)).toEqual([1, 2, 3]);
+    expect((await openChapter(SECOND_READER, "infj-t-h-reader", 2)).chapter.body).toBe("INFJ secret text 2");
+  });
+
+  it("skips hidden chapters in previous/next, the count and the library", async () => {
+    await hide(2);
+    const opened = (await openChapter(INFJ_READER, "infj-t-h-reader", 3)) as unknown as {
+      total: number;
+      index: number;
+      prev: number | null;
+      next: number | null;
+    };
+    expect(opened).toMatchObject({ total: 2, index: 2, prev: 1, next: null });
+    expect(await library(INFJ_READER)).toMatchObject({ chapters: 2, position: 3, first: 1 });
+    expect(await library(SECOND_READER)).toMatchObject({ chapters: 3, first: 1 });
+  });
+
+  it("does not send the reader back to a chapter hidden after they read it", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 1);
+    await hide(1);
+    expect(await toc(INFJ_READER)).toMatchObject({ position: null, first: 2 });
+    expect(await library(INFJ_READER)).toMatchObject({ position: null, first: 2 });
+  });
+
+  it("gives that reader the owner's text for a chapter, and the others the shared one", async () => {
+    await hide(1, "Noura's own text", false);
+    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 1)).chapter.body).toBe("Noura's own text");
+    expect((await openChapter(SECOND_READER, "infj-t-h-reader", 1)).chapter.body).toBe("INFJ secret text 1");
+
+    await hide(1, "   ", false);
+    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 1)).chapter.body).toBe("INFJ secret text 1");
+  });
+
+  it("shows the owner each chapter's state and the counts on the reader's book", async () => {
+    await hide(2);
+    await hide(3, "replaced", false);
+    const [{ data }] = await as<{ data: object[] }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_reader_chapters($1, 'infj-t-h-reader') as data`,
+      [INFJ_READER],
+    );
+    expect(data).toEqual([
+      { position: 1, title: "INFJ chapter 1", hidden: false, body_override: null, note: null },
+      { position: 2, title: "INFJ chapter 2", hidden: true, body_override: null, note: null },
+      { position: 3, title: "INFJ chapter 3", hidden: false, body_override: "replaced", note: null },
+    ]);
+    const [{ dash }] = await as<{ dash: { readers: { id: string; books: { hidden: number; replaced: number }[] }[] } }>(
+      "authenticated",
+      OWNER,
+      `select public.admin_dashboard() as dash`,
+    );
+    const reader = dash.readers.find((r) => r.id === INFJ_READER)!;
+    expect(reader.books[0]).toMatchObject({ hidden: 1, replaced: 1 });
+  });
+
+  it("keeps the overrides out of readers' reach", async () => {
+    await hide(2);
+    await expect(
+      as("authenticated", INFJ_READER, `select * from public.reader_chapter_overrides`),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as("authenticated", INFJ_READER, `select public.chapter_hidden($1, gen_random_uuid())`, [INFJ_READER]),
+    ).rejects.toThrow(/permission denied/);
+  });
+});

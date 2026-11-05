@@ -12,8 +12,10 @@ export type LibraryBook = {
   title: string;
   lang: Locale;
   position: number | null;
-  /** Number of chapters in the book. */
+  /** Number of chapters this reader can open (the owner may hide some for them). */
   chapters: number;
+  /** The first chapter this reader can open. */
+  first?: number | null;
   /** The personality type the book belongs to, e.g. INFJ-T-H; null for other books. */
   type_code: string | null;
   kind: BookKind;
@@ -88,7 +90,7 @@ export function LibraryShelves({
           {/* A book with no type is a tile of its own, opening where the reader stopped. */}
           {others.map((book) => (
             <li key={book.slug}>
-              <Link prefetch={false} href={`/${lang}/read/${book.slug}/${book.position ?? 1}`} className={tileClass}>
+              <Link prefetch={false} href={`/${lang}/read/${book.slug}/${book.position ?? book.first ?? 1}`} className={tileClass}>
                 <span lang={book.lang} dir={dir(book.lang)} className="block font-heading text-2xl leading-snug font-bold">
                   {book.title}
                 </span>

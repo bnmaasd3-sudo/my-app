@@ -11,7 +11,12 @@ import { ReaderSignature } from "./reader-signature";
 export type OpenedChapter = {
   book: { slug: string; title: string; lang: string };
   chapter: { position: number; title: string; body: string };
+  /** Counted over the chapters this reader can open (the owner may hide some for them). */
   total: number;
+  index: number;
+  /** Nearest chapters this reader can open, null at the ends. */
+  prev: number | null;
+  next: number | null;
   scroll_ratio: number;
   reader: { name: string; email: string };
 };
@@ -38,8 +43,8 @@ export function ChapterView({
   const bookLang = hasLocale(data.book.lang) ? data.book.lang : lang;
   const base = `/${lang}/read/${data.book.slug}`;
 
-  const previousHref = data.chapter.position > 1 ? `${base}/${data.chapter.position - 1}` : null;
-  const nextHref = data.chapter.position < data.total ? `${base}/${data.chapter.position + 1}` : null;
+  const previousHref = data.prev != null ? `${base}/${data.prev}` : null;
+  const nextHref = data.next != null ? `${base}/${data.next}` : null;
 
   return (
     <ReaderFrame
@@ -48,6 +53,7 @@ export function ChapterView({
       bookDir={dir(bookLang)}
       chapterTitle={data.chapter.title}
       position={data.chapter.position}
+      index={data.index}
       total={data.total}
       initialRatio={data.scroll_ratio}
       initialFontSize={isFontSize(prefs?.font_size) ? prefs.font_size : "md"}

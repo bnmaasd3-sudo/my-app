@@ -5,6 +5,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import { revokeDevice, setEntitlement, setReaderActive, setSallaProduct } from "./actions";
 import { AddReaderForm } from "./add-reader-form";
+import { ChapterOverrides } from "./chapter-overrides";
 import { ResendWelcome } from "./resend-welcome";
 
 export type Dashboard = {
@@ -14,7 +15,15 @@ export type Dashboard = {
     email: string;
     name: string | null;
     active: boolean;
-    books: { slug: string; title: string; active: boolean; source: string }[];
+    books: {
+      slug: string;
+      title: string;
+      active: boolean;
+      source: string;
+      /** Chapters hidden for this reader, and chapters with their own text (from 20261105023000). */
+      hidden?: number;
+      replaced?: number;
+    }[];
     devices: { id: string; last_seen: string; revoked: boolean }[];
     last_read_at: string | null;
     /** From Supabase Auth; missing until the 20261104010000 migration is applied. */
@@ -136,6 +145,12 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
                   );
                 })}
               </div>
+
+              {reader.books
+                .filter((book) => book.active)
+                .map((book) => (
+                  <ChapterOverrides key={book.slug} readerId={reader.id} book={book} labels={t.overrides} />
+                ))}
 
               <div className="flex flex-col gap-1 text-sm">
                 <p className="text-muted">

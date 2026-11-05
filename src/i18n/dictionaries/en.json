@@ -180,7 +180,24 @@
     "neverSignedIn": "Not signed in yet",
     "invites": "Invitations not used yet",
     "noInvites": "No pending invitations.",
-    "invitedAt": "Invited:"
+    "invitedAt": "Invited:",
+    "overrides": {
+      "open": "Customise chapters",
+      "lead": "What you hide or replace here is for this reader only; everyone else keeps the shared book.",
+      "hiddenCount": "Hidden: {n}",
+      "replacedCount": "Replaced text: {n}",
+      "shown": "Shown to them",
+      "replace": "Replace the text",
+      "replaceHint": "Leave empty for the shared text. Written like the book (Markdown).",
+      "note": "Note for you only (optional)",
+      "save": "Save",
+      "saving": "One moment…",
+      "saved": "Saved.",
+      "failed": "Could not save. Try again.",
+      "loading": "One moment…",
+      "loadError": "Could not load the chapters. Close the list and open it again.",
+      "edition": "For a wholly different edition: import it as its own book and link it to this reader only."
+    }
   },
   "footer": {
     "rights": "Sajiyya",
