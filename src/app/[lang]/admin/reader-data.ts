@@ -177,12 +177,16 @@ export async function loadReaderDetail(service: Service, readerId: string): Prom
         lastOpened: bookLogs[0]?.opened_at ?? null,
       };
     }),
-    timeline: logRows.slice(0, 50).flatMap((log) => {
-      const chapter = chapterById.get(log.chapter_id);
-      return chapter
-        ? [{ at: log.opened_at, book: titleByBook.get(chapter.book_id) ?? "", chapter: chapter.title, position: chapter.position }]
-        : [];
-    }),
+    // What the reader actually opened, newest first: books they still have,
+    // chapters hidden since included (it is a record of reading, not the contents).
+    timeline: logRows
+      .flatMap((log) => {
+        const chapter = chapterById.get(log.chapter_id);
+        return chapter
+          ? [{ at: log.opened_at, book: titleByBook.get(chapter.book_id) ?? "", chapter: chapter.title, position: chapter.position }]
+          : [];
+      })
+      .slice(0, 50),
     tests: ((tests.data ?? []) as { key: string; updated_at: string; status: string | null; name: string | null }[]).map(
       (t) => ({ key: t.key, status: t.status, name: t.name, updatedAt: t.updated_at }),
     ),
