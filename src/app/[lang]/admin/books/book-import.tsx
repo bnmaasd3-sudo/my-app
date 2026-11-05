@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { dir as langDir } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
 import {
@@ -10,12 +11,24 @@ import {
   MAX_FIGURE,
   checkChapters,
   countWords,
+  digitLines,
   suggestedSlug,
+  supportLineProblem,
   toChapters,
   withSupportLine,
   type ImportedChapter,
 } from "@/lib/book-import";
-import { prepareBook, saveChapters, uploadFigure, type BookMeta, type ImportResult } from "./actions";
+import {
+  listChapters,
+  loadChapter,
+  prepareBook,
+  saveChapter,
+  saveChapters,
+  setBookActive,
+  uploadFigure,
+  type BookMeta,
+  type ImportResult,
+} from "./actions";
 
 type Labels = Dictionary["admin"]["bookImport"];
 type Kind = BookMeta["kind"];
@@ -27,6 +40,8 @@ export type ExistingBook = {
   typeCode: string | null;
   kind: string;
   chapters: number;
+  /** False once the owner has taken the book down (books.active). */
+  active?: boolean;
 };
 
 type Problem = { kind: string; chapter?: number; warning?: boolean; message: string };
@@ -61,21 +76,191 @@ export function BookImport({
         ) : (
           <ul className="divide-y divide-border border-y border-border text-sm">
             {books.map((book) => (
-              <li key={book.slug} className="flex flex-wrap items-baseline gap-x-3 py-3">
-                <span className="font-medium">{book.title}</span>
-                <span dir="ltr" className="text-muted">
-                  {book.slug}
-                </span>
-                <span className="text-muted">
-                  {book.typeCode ?? ""} · {kinds[book.kind as Kind] ?? book.kind} · {book.chapters}
-                </span>
-              </li>
+              <CurrentBook key={book.slug} book={book} labels={labels} kinds={kinds} />
             ))}
           </ul>
         )}
       </section>
       <ChapterImport books={books} labels={labels} kinds={kinds} />
       <FigureUpload books={books} labels={labels} />
+    </div>
+  );
+}
+
+/** One book in the owner's list: edit its chapters, or take it down and put it back. */
+function CurrentBook({
+  book,
+  labels,
+  kinds,
+}: {
+  book: ExistingBook;
+  labels: Labels;
+  kinds: Dictionary["library"]["kinds"];
+}) {
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const active = book.active !== false;
+
+  const toggleActive = async () => {
+    if (active && !window.confirm(labels.takeDownConfirm)) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await setBookActive(book.slug, !active);
+      if (!result.ok) setError(errorText(labels, result));
+    } catch {
+      setError(labels.errors.failed);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <li className="flex flex-col gap-2 py-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="font-medium">{book.title}</span>
+        <span dir="ltr" className="text-muted">
+          {book.slug}
+        </span>
+        <span className="text-muted">
+          {book.typeCode ?? ""} · {kinds[book.kind as Kind] ?? book.kind} · {book.chapters}
+        </span>
+        {!active && <span className="text-accent">{labels.takenDown}</span>}
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-1">
+        <button type="button" onClick={() => setEditing(!editing)} className="text-accent hover:underline">
+          {editing ? labels.closeEditor : labels.editChapters}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void toggleActive()}
+          className="text-muted hover:text-foreground disabled:opacity-50"
+        >
+          {active ? labels.takeDown : labels.putBack}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="text-accent">
+          {error}
+        </p>
+      )}
+      {editing && <ChapterEditor slug={book.slug} lang={book.lang} labels={labels} />}
+    </li>
+  );
+}
+
+/** Edit one chapter's title and text in place, with the importer's checks. */
+function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; labels: Labels }) {
+  const [chapters, setChapters] = useState<{ position: number; title: string }[] | "loading" | string>("loading");
+  const [open, setOpen] = useState<{ position: number; title: string; body: string } | null>(null);
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    listChapters(slug).then(
+      (result) => live && setChapters(result.ok ? result.chapters : errorText(labels, result)),
+      () => live && setChapters(labels.errors.failed),
+    );
+    return () => {
+      live = false;
+    };
+  }, [slug, labels]);
+
+  const pick = async (position: number) => {
+    setStatus(labels.loading);
+    try {
+      const result = await loadChapter(slug, position);
+      if (!result.ok) return setStatus(errorText(labels, result));
+      setOpen({ position, title: result.title, body: result.body });
+      setStatus("");
+    } catch {
+      setStatus(labels.errors.failed);
+    }
+  };
+
+  const save = async () => {
+    if (!open) return;
+    setSaving(true);
+    setStatus(labels.savingChapter);
+    try {
+      const result = await saveChapter(slug, open);
+      setStatus(result.ok ? labels.savedChapter : errorText(labels, result));
+      if (result.ok && Array.isArray(chapters)) {
+        setChapters(chapters.map((c) => (c.position === open.position ? { ...c, title: open.title.trim() } : c)));
+      }
+    } catch {
+      setStatus(labels.errors.failed);
+    }
+    setSaving(false);
+  };
+
+  const bookDir = lang === "en" ? langDir("en") : langDir("ar");
+  const digits = open ? digitLines(open.body) : 0;
+  const supportProblem = open ? supportLineProblem(open.position, open.body) : null;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-surface p-4">
+      {typeof chapters === "string" ? (
+        <p className="text-muted">{chapters === "loading" ? labels.loading : chapters}</p>
+      ) : (
+        <>
+          <select
+            value={open?.position ?? ""}
+            onChange={(event) => void pick(Number(event.target.value))}
+            className={field}
+            aria-label={labels.chooseChapter}
+          >
+            <option value="" disabled>
+              {labels.chooseChapter}
+            </option>
+            {chapters.map((chapter) => (
+              <option key={chapter.position} value={chapter.position}>
+                {chapter.position} · {chapter.title}
+              </option>
+            ))}
+          </select>
+          {open && (
+            <>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-muted">{labels.chapterTitle}</span>
+                <input
+                  dir={bookDir}
+                  value={open.title}
+                  onChange={(event) => setOpen({ ...open, title: event.target.value })}
+                  className={`${field} bg-background`}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-muted">{labels.chapterBody}</span>
+                <textarea
+                  dir={bookDir}
+                  rows={16}
+                  value={open.body}
+                  onChange={(event) => setOpen({ ...open, body: event.target.value })}
+                  className={`${field} bg-background font-mono leading-relaxed`}
+                />
+              </label>
+              {supportProblem && <p className="text-accent">{labels.problems["support-line"]}</p>}
+              {digits > 0 && <p className="text-muted">{format(labels.digits, { n: digits })}</p>}
+              <button
+                type="button"
+                disabled={saving || !!supportProblem || !open.title.trim() || !open.body.trim()}
+                onClick={() => void save()}
+                className={button}
+              >
+                {saving ? labels.savingChapter : labels.saveChapter}
+              </button>
+            </>
+          )}
+        </>
+      )}
+      {status && (
+        <p role="status" className="text-muted">
+          {status}
+        </p>
+      )}
     </div>
   );
 }

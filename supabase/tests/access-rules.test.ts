@@ -889,3 +889,51 @@ describe("one reader's copy of a shared book", () => {
     ).rejects.toThrow(/permission denied/);
   });
 });
+
+describe("a book the owner takes down", () => {
+  const takeDown = () => db.exec(`update public.books set active = false where slug = 'infj-t-h-reader'`);
+
+  it("leaves the library and can no longer be opened, with nothing deleted", async () => {
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2);
+    await takeDown();
+
+    const [{ data }] = await as<{ data: unknown[] }>("authenticated", INFJ_READER, `select public.my_library() as data`);
+    expect(data).toEqual([]);
+    await expect(openChapter(INFJ_READER, "infj-t-h-reader", 1)).rejects.toThrow("not_entitled");
+    await expect(as("authenticated", INFJ_READER, `select public.book_toc('infj-t-h-reader')`)).rejects.toThrow(
+      "not_entitled",
+    );
+    await expect(
+      as("authenticated", INFJ_READER, `select public.save_progress('infj-t-h-reader', 1, 0.5, '${DEVICE_1}')`),
+    ).rejects.toThrow("not_entitled");
+    expect(
+      await as("authenticated", INFJ_READER, `select public.can_read_book_files('infj-t-h-reader') as ok`),
+    ).toEqual([{ ok: false }]);
+
+    // Chapters, the entitlement and the saved place are all still there.
+    const [{ chapters, entitlements, places }] = await db
+      .query<{ chapters: number; entitlements: number; places: number }>(
+        `select (select count(*)::int from public.chapters c join public.books b on b.id = c.book_id where b.slug = 'infj-t-h-reader') as chapters,
+                (select count(*)::int from public.entitlements where reader_id = $1 and active) as entitlements,
+                (select count(*)::int from public.reading_state where reader_id = $1) as places`,
+        [INFJ_READER],
+      )
+      .then((result) => result.rows);
+    expect({ chapters, entitlements, places }).toEqual({ chapters: 3, entitlements: 1, places: 1 });
+  });
+
+  it("comes back as it was when put back up", async () => {
+    await takeDown();
+    await db.exec(`update public.books set active = true where slug = 'infj-t-h-reader'`);
+    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 1)).chapter.body).toBe("INFJ secret text 1");
+  });
+
+  it("does not let readers change it", async () => {
+    // Refused outright or filtered to no rows by RLS: either way nothing changes.
+    await as("authenticated", INFJ_READER, `update public.books set active = false where slug = 'infj-t-h-reader'`).catch(
+      () => undefined,
+    );
+    const { rows } = await db.query<{ active: boolean }>(`select active from public.books where slug = 'infj-t-h-reader'`);
+    expect(rows).toEqual([{ active: true }]);
+  });
+});

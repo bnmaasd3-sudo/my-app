@@ -6,6 +6,7 @@ export {
   checkBookMeta,
   checkChapters,
   countWords,
+  digitLines,
   supportLineProblem,
   toChapters,
   withSupportLine,

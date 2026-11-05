@@ -82,6 +82,11 @@ export function supportLineProblem(position, body) {
   return count === 0 ? null : "support-line";
 }
 
+/** How many lines of a text carry digits or percent signs (the support line aside), for review. */
+export function digitLines(text) {
+  return text.split("\n").filter((line) => FORBIDDEN.test(line.split(SUPPORT_LINE).join(""))).length;
+}
+
 export const countWords = (text) => text.split(/\s+/).filter(Boolean).length;
 
 /**
