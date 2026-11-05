@@ -8,6 +8,7 @@ import {
   MAX_FIGURE,
   checkBookMeta,
   figureContentType,
+  missingColumn,
   supportLineProblem,
 } from "@/lib/book-import";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -108,6 +109,7 @@ export async function prepareBook(
 }
 
 type ChapterRow = { position: number; title: string; body: string };
+
 
 /** One chapter as the browser sent it, checked: shape, size and the support-line rule. */
 function checkChapter(chapter: unknown): ChapterRow | { error: ImportError; position?: number } {
@@ -251,8 +253,7 @@ export async function setBookActive(slug: string, active: boolean): Promise<Impo
     .update({ active: active === true })
     .eq("slug", String(slug))
     .select("id");
-  // 42703: the column does not exist yet, so the migration has not been applied.
-  if (error) return { ok: false, error: error.code === "42703" ? "migrationPending" : "failed" };
+  if (error) return { ok: false, error: missingColumn(error) ? "migrationPending" : "failed" };
   if (!data || data.length === 0) return { ok: false, error: "notFound" };
   refresh();
   return { ok: true };

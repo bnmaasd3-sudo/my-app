@@ -184,5 +184,9 @@ describe("editing a book from the owner panel", () => {
     expect(writes.at(-1)).toEqual({ table: "books", op: "update", payload: { active: false } });
     updateResult = { data: null, error: { code: "42703" } };
     expect(await setBookActive(meta.slug, false)).toEqual({ ok: false, error: "migrationPending" });
+    updateResult = { data: null, error: { code: "PGRST204" } };
+    expect(await setBookActive(meta.slug, false)).toEqual({ ok: false, error: "migrationPending" });
+    updateResult = { data: null, error: { code: "57014" } };
+    expect(await setBookActive(meta.slug, false)).toEqual({ ok: false, error: "failed" });
   });
 });

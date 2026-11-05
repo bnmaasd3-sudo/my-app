@@ -273,12 +273,13 @@
       "chapterBody": "Chapter text (Markdown)",
       "saveChapter": "Save chapter",
       "savingChapter": "Saving…",
-      "savedChapter": "Chapter saved; readers see it now.",
+      "savedChapter": "Chapter saved. Readers with their own replacement text for this chapter keep theirs.",
       "loading": "One moment…",
-      "takeDown": "Delete book",
-      "takeDownConfirm": "The book will be hidden from every reader's library and can't be opened. Nothing in it is deleted and you can put it back at any time. Continue?",
+      "takeDown": "Remove from libraries",
+      "takeDownConfirm": "The book will be hidden from every reader's library and can't be opened. Nothing in it is erased and you can put it back at any time. If it is linked to a Salla product, unlink that first so it is not sold. Continue?",
       "putBack": "Put the book back",
-      "takenDown": "Taken down: hidden from readers"
+      "takenDown": "Taken down: hidden from readers",
+      "discardChanges": "This chapter has unsaved changes. Discard them?"
     }
   },
   "footer": {

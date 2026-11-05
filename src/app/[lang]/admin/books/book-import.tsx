@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { dir as langDir } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { format } from "@/i18n/format";
@@ -156,6 +156,9 @@ function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; lab
   const [open, setOpen] = useState<{ position: number; title: string; body: string } | null>(null);
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  // Only the latest chapter asked for may fill the editor.
+  const latest = useRef(0);
 
   useEffect(() => {
     let live = true;
@@ -169,11 +172,15 @@ function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; lab
   }, [slug, labels]);
 
   const pick = async (position: number) => {
+    if (dirty && !window.confirm(labels.discardChanges)) return;
+    const request = ++latest.current;
     setStatus(labels.loading);
     try {
       const result = await loadChapter(slug, position);
+      if (request !== latest.current) return;
       if (!result.ok) return setStatus(errorText(labels, result));
       setOpen({ position, title: result.title, body: result.body });
+      setDirty(false);
       setStatus("");
     } catch {
       setStatus(labels.errors.failed);
@@ -187,6 +194,7 @@ function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; lab
     try {
       const result = await saveChapter(slug, open);
       setStatus(result.ok ? labels.savedChapter : errorText(labels, result));
+      if (result.ok) setDirty(false);
       if (result.ok && Array.isArray(chapters)) {
         setChapters(chapters.map((c) => (c.position === open.position ? { ...c, title: open.title.trim() } : c)));
       }
@@ -197,7 +205,7 @@ function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; lab
   };
 
   const bookDir = lang === "en" ? langDir("en") : langDir("ar");
-  const digits = open ? digitLines(open.body) : 0;
+  const digits = open ? digitLines(`${open.title}\n${open.body}`) : 0;
   const supportProblem = open ? supportLineProblem(open.position, open.body) : null;
 
   return (
@@ -228,7 +236,10 @@ function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; lab
                 <input
                   dir={bookDir}
                   value={open.title}
-                  onChange={(event) => setOpen({ ...open, title: event.target.value })}
+                  onChange={(event) => {
+                    setOpen({ ...open, title: event.target.value });
+                    setDirty(true);
+                  }}
                   className={`${field} bg-background`}
                 />
               </label>
@@ -238,7 +249,10 @@ function ChapterEditor({ slug, lang, labels }: { slug: string; lang: string; lab
                   dir={bookDir}
                   rows={16}
                   value={open.body}
-                  onChange={(event) => setOpen({ ...open, body: event.target.value })}
+                  onChange={(event) => {
+                    setOpen({ ...open, body: event.target.value });
+                    setDirty(true);
+                  }}
                   className={`${field} bg-background font-mono leading-relaxed`}
                 />
               </label>
