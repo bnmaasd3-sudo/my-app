@@ -161,7 +161,8 @@ export async function setChapterOverride(_previous: OverrideState, formData: For
   const readerId = String(formData.get("reader") ?? "");
   const bookSlug = String(formData.get("book") ?? "");
   const position = Number(formData.get("position"));
-  const body = String(formData.get("body") ?? "");
+  // Browsers send a textarea's lines with \r\n; the book and the support-line check use \n.
+  const body = String(formData.get("body") ?? "").replace(/\r\n?/g, "\n");
   const note = String(formData.get("note") ?? "").trim().slice(0, 500);
   if (!UUID.test(readerId) || !bookSlug || !Number.isInteger(position) || position < 1) return { status: "error" };
   if (body.length > MAX_OVERRIDE) return { status: "error" };
