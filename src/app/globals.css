@@ -112,9 +112,9 @@ body {
     .reader-sidebar {
       display: block;
       position: sticky;
-      top: 4rem;
+      top: 4.5rem;
       align-self: start;
-      max-height: calc(100dvh - 4.5rem);
+      max-height: calc(100dvh - 5rem);
       overflow-y: auto;
       padding-block: 1.5rem;
       border-inline-end: 1px solid var(--border);

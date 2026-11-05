@@ -29,6 +29,7 @@ const SCREENS = [
   { name: "chapter-laptop", path: "chapter?layout=laptop", text: "article.reader-text", column: ".reader-column" },
   { name: "contents", path: "contents", text: "main", column: ":has(> main)" },
   { name: "library", path: "library", text: "main", column: ":has(> main)" },
+  { name: "type", path: "type", text: "main", column: ":has(> main)" },
   { name: "test", path: "test", text: "main", column: ":has(> main)" },
   { name: "test-owner", path: "test-owner", text: "main", column: ":has(> main)" },
 ];

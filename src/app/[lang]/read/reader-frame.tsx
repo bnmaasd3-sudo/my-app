@@ -160,7 +160,7 @@ export function ReaderFrame({
       onDragStart={(event) => event.preventDefault()}
     >
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="reader-bar flex h-14 items-center gap-1">
+        <div className="reader-bar flex h-16 items-center gap-1">
           <IconLink href={backHref} label={labels.back}>
             <ArrowLeft className={FLIP} />
           </IconLink>

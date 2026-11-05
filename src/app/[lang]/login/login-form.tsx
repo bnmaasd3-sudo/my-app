@@ -12,9 +12,9 @@ type Props = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-border bg-surface px-4 py-3 text-lg outline-none focus:border-accent";
+  "w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-lg outline-none transition-colors focus:border-accent";
 const primaryClass =
-  "rounded-full bg-accent px-6 py-3 font-heading text-accent-foreground disabled:opacity-60";
+  "rounded-2xl bg-accent px-6 py-3.5 font-heading text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60";
 
 export function LoginForm({ action, dict, linkError = false }: Props) {
   const [state, formAction, pending] = useActionState(action, {
@@ -24,7 +24,7 @@ export function LoginForm({ action, dict, linkError = false }: Props) {
   });
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-5">
       {state.step === "email" ? (
         <>
           <label className="flex flex-col gap-2">
@@ -79,7 +79,7 @@ export function LoginForm({ action, dict, linkError = false }: Props) {
         </>
       )}
       {state.error && (
-        <p role="alert" className="rounded-xl border border-border bg-surface p-3 text-sm">
+        <p role="alert" className="rounded-2xl bg-surface p-4 text-sm leading-relaxed">
           {dict.errors[state.error]}
         </p>
       )}

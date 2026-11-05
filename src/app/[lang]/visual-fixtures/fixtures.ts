@@ -58,8 +58,8 @@ export const contents: Contents = {
 };
 
 export const books: LibraryBook[] = [
-  { slug: "fixture-book", title: "نسخة القارئ التجريبية", lang: "ar", position: 3, type_code: "INFJ-T-H", kind: "encyclopedia" },
-  { slug: "fixture-novel", title: "رواية تجريبية بعنوان أطول قليلًا من غيرها", lang: "ar", position: null, type_code: "INFJ-T-H", kind: "novel" },
-  { slug: "fixture-appendix", title: "ملحقات تجريبية", lang: "ar", position: 2, type_code: "INFJ-T-H", kind: "appendix" },
-  { slug: "fixture-other", title: "كتاب آخر بلا نمط", lang: "ar", position: null, type_code: null, kind: "encyclopedia" },
+  { slug: "fixture-book", title: "نسخة القارئ التجريبية", lang: "ar", position: 3, chapters: 33, type_code: "INFJ-T-H", kind: "encyclopedia" },
+  { slug: "fixture-novel", title: "رواية تجريبية بعنوان أطول قليلًا من غيرها", lang: "ar", position: null, chapters: 16, type_code: "INFJ-T-H", kind: "novel" },
+  { slug: "fixture-appendix", title: "ملحقات تجريبية", lang: "ar", position: 2, chapters: 8, type_code: "INFJ-T-H", kind: "appendix" },
+  { slug: "fixture-esfj", title: "موسوعة تجريبية ثانية", lang: "ar", position: null, chapters: 30, type_code: "ESFJ-T-H", kind: "encyclopedia" },
 ];

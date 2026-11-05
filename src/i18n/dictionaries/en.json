@@ -58,21 +58,17 @@
     "continue": "Continue reading",
     "contents": "Contents",
     "lead": "Your books and the tests open to you.",
-    "books": "My books",
-    "reachedChapter": "You reached chapter {n}",
-    "notStarted": "Not started yet",
-    "tools": "Tests",
     "testTitle": "Type test",
-    "testLead": "Short questions, then cards, then the letters of your type. No right or wrong answers.",
-    "testOpen": "Start the test",
-    "typeLabel": "Type",
-    "typeLead": "Your books of this type, and the type test.",
     "kinds": {
       "encyclopedia": "Encyclopedia",
       "novel": "Novel",
       "appendix": "Appendices"
     },
-    "otherBooks": "Other books"
+    "otherBooks": "Other books",
+    "typeSubtitles": {
+      "INFJ-T-H": "Male"
+    },
+    "typeSubtitleDefault": "Type"
   },
   "reader": {
     "contents": "Contents",
@@ -269,5 +265,13 @@
         "body": "We may update these terms, and every update is published on this page."
       }
     ]
+  },
+  "type": {
+    "back": "My library",
+    "chapters": "{n} chapters",
+    "continue": "Continue where you stopped",
+    "start": "Start",
+    "test": "Test",
+    "testLead": "Short questions that find your type."
   }
 }
