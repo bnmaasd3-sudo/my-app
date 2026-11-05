@@ -6,6 +6,8 @@ import { format } from "@/i18n/format";
 import { revokeDevice, setEntitlement, setReaderActive, setSallaProduct } from "./actions";
 import { AddReaderForm } from "./add-reader-form";
 import { ChapterOverrides } from "./chapter-overrides";
+import { ProgressLine } from "./progress-line";
+import type { ProgressByReader } from "./reader-data";
 import { ResendWelcome } from "./resend-welcome";
 
 export type Dashboard = {
@@ -15,6 +17,7 @@ export type Dashboard = {
     email: string;
     name: string | null;
     active: boolean;
+    created_at: string;
     books: {
       slug: string;
       title: string;
@@ -58,6 +61,10 @@ const smallButton = "rounded-full border border-border px-3 py-1 text-xs hover:b
 
 type Props = {
   data: Dashboard;
+  /** Where each reader is in each book (null when the service key is not set). */
+  progress: ProgressByReader | null;
+  /** The owner's search, already applied to data.readers. */
+  query: string;
   salla: SallaPanel;
   tests: TestResultRow[];
   webhookUrl: string;
@@ -65,7 +72,7 @@ type Props = {
   dict: Dictionary;
 };
 
-export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props) {
+export function AdminView({ data, progress, query, salla, tests, webhookUrl, lang, dict }: Props) {
   const { books, readers, reads } = data;
 
   const when = new Intl.DateTimeFormat(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB", {
@@ -101,13 +108,33 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-xl font-semibold">{t.readers}</h2>
-        {readers.length === 0 && <p className="text-muted">{t.noReaders}</p>}
+        <form method="get" className="flex flex-wrap items-center gap-2" role="search">
+          <input
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder={t.follow.search}
+            aria-label={t.follow.search}
+            className="min-w-0 flex-1 rounded-xl border border-transparent bg-surface px-4 py-2 text-sm outline-none focus:border-accent"
+          />
+          <button className={smallButton}>{t.follow.searchButton}</button>
+          {query && (
+            <Link href={`/${lang}/admin`} className="text-xs text-muted hover:text-foreground">
+              {t.follow.clear}
+            </Link>
+          )}
+        </form>
+        <p className="text-xs text-muted">{t.follow.sortedBy}</p>
+        {progress === null && <p className="text-xs text-muted">{t.follow.noServiceKey}</p>}
+        {readers.length === 0 && <p className="text-muted">{query ? t.follow.noMatch : t.noReaders}</p>}
         <ul className="flex flex-col gap-3">
           {readers.map((reader) => (
             <li key={reader.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="font-heading">{reader.name || reader.email}</p>
+                  <Link href={`/${lang}/admin/readers/${reader.id}`} className="font-heading hover:text-accent">
+                    {reader.name || reader.email}
+                  </Link>
                   <p className="text-sm text-muted" dir="ltr">
                     {reader.email}
                   </p>
@@ -150,6 +177,25 @@ export function AdminView({ data, salla, tests, webhookUrl, lang, dict }: Props)
                   );
                 })}
               </div>
+
+              {reader.books.some((book) => book.active) && (
+                <ul className="flex flex-col gap-2">
+                  {reader.books
+                    .filter((book) => book.active)
+                    .map((book) => {
+                      const bookProgress = progress?.[reader.id]?.[book.slug];
+                      return (
+                        <li key={book.slug} className="flex flex-col gap-1">
+                          <span className="text-sm">{book.title}</span>
+                          <ProgressLine progress={bookProgress} updatedAt={bookProgress?.updatedAt} labels={t.follow} />
+                        </li>
+                      );
+                    })}
+                </ul>
+              )}
+              <Link href={`/${lang}/admin/readers/${reader.id}`} className="self-start text-xs text-accent hover:underline">
+                {t.follow.open}
+              </Link>
 
               {reader.books
                 .filter((book) => book.active)
