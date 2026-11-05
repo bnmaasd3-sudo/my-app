@@ -47,6 +47,9 @@ export const opened: OpenedChapter = {
     ].join("\n\n"),
   },
   total: chapters.length,
+  index: 3,
+  prev: 2,
+  next: 4,
   scroll_ratio: 0,
   reader: { name: "قارئة التجربة", email: "visual-check@example.com" },
 };

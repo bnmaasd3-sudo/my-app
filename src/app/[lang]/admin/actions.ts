@@ -122,3 +122,64 @@ export async function revokeDevice(readerId: string, deviceId: string) {
   await supabase.rpc("admin_revoke_device", { p_reader_id: readerId, p_device_id: deviceId });
   refresh();
 }
+
+/** One chapter of a book as one reader gets it: hidden, or with its own text. */
+export type ReaderChapter = {
+  position: number;
+  title: string;
+  hidden: boolean;
+  body_override: string | null;
+  note: string | null;
+};
+
+export type OverrideState = {
+  status: "idle" | "saved" | "error";
+  /** Why the database refused it: the first chapter must stay, with the support line first. */
+  error?: "supportLine" | "firstChapter";
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Well above any chapter in the book; keeps a pasted mistake from filling the database. */
+const MAX_OVERRIDE = 400_000;
+
+/** The book's chapters for one reader, for the owner to customise. Null if it cannot be read. */
+export async function readerChapters(readerId: string, bookSlug: string): Promise<ReaderChapter[] | null> {
+  const supabase = await ownerClient();
+  if (!supabase || !UUID.test(readerId)) return null;
+  const { data, error } = await supabase.rpc("admin_reader_chapters", {
+    p_reader_id: readerId,
+    p_book_slug: bookSlug,
+  });
+  return error ? null : (data as ReaderChapter[]);
+}
+
+/** Shows or hides one chapter for one reader, and sets or clears its own text. */
+export async function setChapterOverride(_previous: OverrideState, formData: FormData): Promise<OverrideState> {
+  const supabase = await ownerClient();
+  if (!supabase) return { status: "error" };
+
+  const readerId = String(formData.get("reader") ?? "");
+  const bookSlug = String(formData.get("book") ?? "");
+  const position = Number(formData.get("position"));
+  // Browsers send a textarea's lines with \r\n; the book and the support-line check use \n.
+  const body = String(formData.get("body") ?? "").replace(/\r\n?/g, "\n");
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500);
+  if (!UUID.test(readerId) || !bookSlug || !Number.isInteger(position) || position < 1) return { status: "error" };
+  if (body.length > MAX_OVERRIDE) return { status: "error" };
+
+  const { error } = await supabase.rpc("admin_set_chapter_override", {
+    p_reader_id: readerId,
+    p_book_slug: bookSlug,
+    p_position: position,
+    p_hidden: formData.get("shown") !== "on",
+    p_body_override: body.trim() ? body : null,
+    p_note: note || null,
+  });
+  if (error) {
+    if (error.message.includes("support_line")) return { status: "error", error: "supportLine" };
+    if (error.message.includes("first_chapter_stays")) return { status: "error", error: "firstChapter" };
+    return { status: "error" };
+  }
+  refresh();
+  return { status: "saved" };
+}

@@ -10,6 +10,15 @@
 4. الأشكال (إن وجدت): ارفعها إلى مستودع `figures` في Supabase Storage تحت `<slug>/figures/`.
 5. اربط الكتاب بالقراء من لوحة المالك، أو بمنتج في سلة (docs/salla.md).
 
+## نسخة قارئ تختلف عن غيره
+
+الكتاب واحد لكل من يملكه، ويمكن تخصيصه لقارئ بعينه دون رفعه مرة أخرى: في لوحة المالك، تحت القارئ، افتح «تخصيص الفصول» للكتاب.
+- ألغِ «يظهر له» لتُخفي فصلًا عنه: لا يظهر في الفهرس ولا العدد ولا السابق/التالي، ولا يفتح برقمه.
+- «استبدال النص» يعطيه نصًا آخر لذلك الفصل (بصيغة الكتاب نفسها)، وفارغًا يعود إلى النص المشترك.
+- الملاحظة لك وحدك ولا يراها القارئ.
+
+لنسخة مختلفة كليًا: أدخلها كتابًا مستقلًا باسم (slug) جديد بـ `scripts/import-book.mjs`، واربطها بذلك القارئ وحده.
+
 ## إضافة مالك ثانٍ
 
 على جهازك، بمفتاح الخدمة في متغيرات البيئة (لا في ملف):
@@ -77,4 +86,4 @@ end $$;
 
 ## In English
 
-A deletion request is handled by hand: suspend the reader, run the SQL block above with their email, then delete the user in Supabase Authentication. Add a book with `scripts/import-book.mjs` (check first, then `--out` a SQL file outside the repo and run it once in the SQL editor). Add a second owner with `scripts/add-admin.mjs` using the service key from the environment (it is a dry run until you add `--yes`). Backups: Supabase Database → Backups when your plan includes them, otherwise a regular `supabase db dump`. If sign-in breaks, check Vercel Deployment Protection, the site URL in Vercel and Supabase (Site URL and both `/auth/callback` redirects), email delivery (Custom SMTP through Resend), and that the email is invited and active. For a new domain: Vercel domain and `NEXT_PUBLIC_SITE_URL`, Supabase URLs, Resend domain and `MAIL_FROM`, the Salla webhook URL, `QARI_URL` and rebuilt apps, and the privacy link in both stores.
+A deletion request is handled by hand: suspend the reader, run the SQL block above with their email, then delete the user in Supabase Authentication. Add a book with `scripts/import-book.mjs` (check first, then `--out` a SQL file outside the repo and run it once in the SQL editor). To give one reader a different copy of a shared book, open "Customise chapters" under them in the owner panel: untick a chapter to hide it from them (gone from the contents, the count, previous/next and its URL) or give it their own text; empty text means the shared one. A wholly different edition is its own book slug, imported with `scripts/import-book.mjs` and linked to that reader only. Add a second owner with `scripts/add-admin.mjs` using the service key from the environment (it is a dry run until you add `--yes`). Backups: Supabase Database → Backups when your plan includes them, otherwise a regular `supabase db dump`. If sign-in breaks, check Vercel Deployment Protection, the site URL in Vercel and Supabase (Site URL and both `/auth/callback` redirects), email delivery (Custom SMTP through Resend), and that the email is invited and active. For a new domain: Vercel domain and `NEXT_PUBLIC_SITE_URL`, Supabase URLs, Resend domain and `MAIL_FROM`, the Salla webhook URL, `QARI_URL` and rebuilt apps, and the privacy link in both stores.

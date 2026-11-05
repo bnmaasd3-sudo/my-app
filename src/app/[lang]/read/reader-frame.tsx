@@ -39,7 +39,10 @@ type Props = {
   bookLang: string;
   bookDir: "rtl" | "ltr";
   chapterTitle: string;
+  /** The chapter's number in the book, used to save the reading place. */
   position: number;
+  /** Its place among the chapters this reader can open, and how many there are. */
+  index: number;
   total: number;
   initialRatio: number;
   initialFontSize: FontSize;
@@ -78,6 +81,7 @@ export function ReaderFrame({
   bookDir,
   chapterTitle,
   position,
+  index,
   total,
   initialRatio,
   initialFontSize,
@@ -181,7 +185,7 @@ export function ReaderFrame({
               {chapterTitle}
             </p>
             <p className="text-[0.7rem] leading-4 text-muted">
-              {format(labels.chapterOf, { n: position, total })}
+              {format(labels.chapterOf, { n: index, total })}
             </p>
           </div>
 
