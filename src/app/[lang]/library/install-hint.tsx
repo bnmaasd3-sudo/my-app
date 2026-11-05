@@ -8,6 +8,18 @@ type InstallEvent = Event & { prompt: () => Promise<void> };
 
 const DISMISSED = "sajiyya_install_hint_dismissed";
 
+// Chrome may offer installing before the hint mounts, so the offer is caught
+// as soon as this module loads and kept until the hint asks for it.
+let earlyOffer: InstallEvent | null = null;
+const offerListeners = new Set<(event: InstallEvent) => void>();
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    earlyOffer = event as InstallEvent;
+    offerListeners.forEach((listener) => listener(earlyOffer!));
+  });
+}
+
 /**
  * A quiet line suggesting the reader add the app to their home screen: a
  * button where the browser offers installing (Android, desktop Chrome), the
@@ -37,13 +49,15 @@ export function InstallHint({ labels }: { labels: Labels }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (iOS) setMode("ios");
 
-    const onPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallEvent(event as InstallEvent);
+    const onOffer = (event: InstallEvent) => {
+      setInstallEvent(event);
       setMode("prompt");
     };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    if (earlyOffer) onOffer(earlyOffer);
+    offerListeners.add(onOffer);
+    return () => {
+      offerListeners.delete(onOffer);
+    };
   }, []);
 
   if (mode === "none") return null;
