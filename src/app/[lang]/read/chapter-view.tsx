@@ -13,10 +13,10 @@ export type OpenedChapter = {
   chapter: { position: number; title: string; body: string };
   /** Counted over the chapters this reader can open (the owner may hide some for them). */
   total: number;
-  index: number;
+  index?: number;
   /** Nearest chapters this reader can open, null at the ends. */
-  prev: number | null;
-  next: number | null;
+  prev?: number | null;
+  next?: number | null;
   scroll_ratio: number;
   reader: { name: string; email: string };
 };
@@ -43,8 +43,12 @@ export function ChapterView({
   const bookLang = hasLocale(data.book.lang) ? data.book.lang : lang;
   const base = `/${lang}/read/${data.book.slug}`;
 
-  const previousHref = data.prev != null ? `${base}/${data.prev}` : null;
-  const nextHref = data.next != null ? `${base}/${data.next}` : null;
+  // prev/next/index come from 20261105023000; before it, chapters are numbered 1..total.
+  const position = data.chapter.position;
+  const prev = data.prev !== undefined ? data.prev : position > 1 ? position - 1 : null;
+  const next = data.next !== undefined ? data.next : position < data.total ? position + 1 : null;
+  const previousHref = prev != null ? `${base}/${prev}` : null;
+  const nextHref = next != null ? `${base}/${next}` : null;
 
   return (
     <ReaderFrame
@@ -53,7 +57,7 @@ export function ChapterView({
       bookDir={dir(bookLang)}
       chapterTitle={data.chapter.title}
       position={data.chapter.position}
-      index={data.index}
+      index={data.index ?? position}
       total={data.total}
       initialRatio={data.scroll_ratio}
       initialFontSize={isFontSize(prefs?.font_size) ? prefs.font_size : "md"}

@@ -20,21 +20,6 @@ alter table public.reader_chapter_overrides enable row level security;
 -- and my_library, the owner only through the admin_* functions below.
 revoke all on public.reader_chapter_overrides from anon, authenticated;
 
--- True when the chapter is hidden for this reader.
-create function public.chapter_hidden(p_reader_id uuid, p_chapter_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select coalesce((
-    select o.hidden from public.reader_chapter_overrides o
-    where o.reader_id = p_reader_id and o.chapter_id = p_chapter_id
-  ), false);
-$$;
-revoke execute on function public.chapter_hidden(uuid, uuid) from public, anon, authenticated;
-
 -- The contents, without the chapters hidden for this reader. `position` is
 -- where they stopped (null if that chapter is now hidden), `first` the first
 -- chapter they can open.
@@ -56,18 +41,27 @@ begin
     'chapters', coalesce((
       select jsonb_agg(jsonb_build_object('position', c.position, 'title', c.title) order by c.position)
       from public.chapters c
-      where c.book_id = v_book.id and not public.chapter_hidden(v_reader.id, c.id)
+      where c.book_id = v_book.id and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        )
     ), '[]'::jsonb),
     'position', (
       select c.position
       from public.reading_state s
       join public.chapters c on c.id = s.chapter_id
       where s.reader_id = v_reader.id and s.book_id = v_book.id
-        and not public.chapter_hidden(v_reader.id, c.id)
+        and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        )
     ),
     'first', (
       select min(c.position) from public.chapters c
-      where c.book_id = v_book.id and not public.chapter_hidden(v_reader.id, c.id)
+      where c.book_id = v_book.id and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        )
     )
   );
 end;
@@ -120,7 +114,10 @@ begin
          min(c.position) filter (where c.position > p_position)
     into v_total, v_index, v_prev, v_next
   from public.chapters c
-  where c.book_id = v_book.id and not public.chapter_hidden(v_reader.id, c.id);
+  where c.book_id = v_book.id and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        );
 
   insert into public.reading_log (reader_id, chapter_id, device_id)
   values (v_reader.id, v_chapter.id, p_device_id);
@@ -183,7 +180,10 @@ begin
   from public.chapters c
   where c.book_id = v_book.id and c.position = p_position;
 
-  if not found or public.chapter_hidden(v_reader.id, v_chapter_id) then
+  if not found or exists (
+    select 1 from public.reader_chapter_overrides o
+    where o.reader_id = v_reader.id and o.chapter_id = v_chapter_id and o.hidden
+  ) then
     raise exception 'chapter_not_found' using errcode = 'P0002';
   end if;
 
@@ -219,18 +219,27 @@ begin
         'kind', b.kind,
         'chapters', (
           select count(*) from public.chapters c
-          where c.book_id = b.id and not public.chapter_hidden(v_reader.id, c.id)
+          where c.book_id = b.id and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        )
         ),
         'position', (
           select c.position
           from public.reading_state s
           join public.chapters c on c.id = s.chapter_id
           where s.reader_id = v_reader.id and s.book_id = b.id
-            and not public.chapter_hidden(v_reader.id, c.id)
+            and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        )
         ),
         'first', (
           select min(c.position) from public.chapters c
-          where c.book_id = b.id and not public.chapter_hidden(v_reader.id, c.id)
+          where c.book_id = b.id and not exists (
+          select 1 from public.reader_chapter_overrides o
+          where o.reader_id = v_reader.id and o.chapter_id = c.id and o.hidden
+        )
         )
       )
       order by b.type_code nulls last,
@@ -368,7 +377,9 @@ $$;
 
 -- Owner: hide or show a chapter for one reader, and replace its text (empty =
 -- the shared text). Nothing is deleted: going back to the shared chapter
--- keeps the row with nothing set.
+-- keeps the row with nothing set. The book's first chapter carries the
+-- support line, so it is never hidden, its own text must still open with that
+-- line, and no other chapter's text may carry it (CLAUDE.md).
 create function public.admin_set_chapter_override(
   p_reader_id uuid,
   p_book_slug text,
@@ -383,17 +394,38 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_support constant text := 'الدعم في السعودية: 937 (وزارة الصحة) | الطوارئ: 911 | الهلال الأحمر: 997';
   v_chapter_id uuid;
+  v_first boolean;
+  v_body text := case when btrim(coalesce(p_body_override, '')) = '' then null else p_body_override end;
 begin
   perform public.assert_admin();
 
-  select c.id into v_chapter_id
+  select c.id, c.position = (select min(f.position) from public.chapters f where f.book_id = c.book_id)
+    into v_chapter_id, v_first
   from public.chapters c
   join public.books b on b.id = c.book_id
   where b.slug = p_book_slug and c.position = p_position;
 
   if not found then
     raise exception 'chapter_not_found' using errcode = 'P0002';
+  end if;
+
+  if v_first and coalesce(p_hidden, false) then
+    raise exception 'first_chapter_stays' using errcode = '22023';
+  end if;
+
+  if v_body is not null then
+    if v_first and (
+      select btrim(l) from unnest(string_to_array(v_body, E'\n')) with ordinality as t(l, n)
+      where btrim(l) <> '' order by n limit 1
+    ) is distinct from v_support then
+      raise exception 'support_line' using errcode = '22023';
+    end if;
+    if (char_length(v_body) - char_length(replace(v_body, v_support, ''))) / char_length(v_support)
+      > (case when v_first then 1 else 0 end) then
+      raise exception 'support_line' using errcode = '22023';
+    end if;
   end if;
 
   if not exists (select 1 from public.readers r where r.id = p_reader_id) then
@@ -405,7 +437,7 @@ begin
     p_reader_id,
     v_chapter_id,
     coalesce(p_hidden, false),
-    case when btrim(coalesce(p_body_override, '')) = '' then null else p_body_override end,
+    v_body,
     nullif(btrim(p_note), '')
   )
   on conflict (reader_id, chapter_id) do update

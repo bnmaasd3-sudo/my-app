@@ -196,7 +196,10 @@
       "failed": "Could not save. Try again.",
       "loading": "One moment…",
       "loadError": "Could not load the chapters. Close the list and open it again.",
-      "edition": "For a wholly different edition: import it as its own book and link it to this reader only."
+      "edition": "For a wholly different edition: import it as its own book and link it to this reader only.",
+      "firstStays": "The first chapter always stays (it carries the support line).",
+      "replaceHintFirst": "Leave empty for the shared text. Replacement text for the first chapter must open with the exact support line.",
+      "supportLine": "The support line must open the first chapter exactly, and appear nowhere else."
     }
   },
   "footer": {

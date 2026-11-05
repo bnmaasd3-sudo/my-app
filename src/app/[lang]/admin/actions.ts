@@ -132,7 +132,11 @@ export type ReaderChapter = {
   note: string | null;
 };
 
-export type OverrideState = { status: "idle" | "saved" | "error" };
+export type OverrideState = {
+  status: "idle" | "saved" | "error";
+  /** Why the database refused it: the first chapter must stay, with the support line first. */
+  error?: "supportLine" | "firstChapter";
+};
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Well above any chapter in the book; keeps a pasted mistake from filling the database. */
@@ -170,7 +174,11 @@ export async function setChapterOverride(_previous: OverrideState, formData: For
     p_body_override: body.trim() ? body : null,
     p_note: note || null,
   });
-  if (error) return { status: "error" };
+  if (error) {
+    if (error.message.includes("support_line")) return { status: "error", error: "supportLine" };
+    if (error.message.includes("first_chapter_stays")) return { status: "error", error: "firstChapter" };
+    return { status: "error" };
+  }
   refresh();
   return { status: "saved" };
 }

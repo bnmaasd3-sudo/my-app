@@ -833,19 +833,30 @@ describe("one reader's copy of a shared book", () => {
   });
 
   it("does not send the reader back to a chapter hidden after they read it", async () => {
-    await openChapter(INFJ_READER, "infj-t-h-reader", 1);
-    await hide(1);
-    expect(await toc(INFJ_READER)).toMatchObject({ position: null, first: 2 });
-    expect(await library(INFJ_READER)).toMatchObject({ position: null, first: 2 });
+    await openChapter(INFJ_READER, "infj-t-h-reader", 2);
+    await hide(2);
+    expect(await toc(INFJ_READER)).toMatchObject({ position: null, first: 1 });
+    expect(await library(INFJ_READER)).toMatchObject({ position: null, first: 1 });
   });
 
   it("gives that reader the owner's text for a chapter, and the others the shared one", async () => {
-    await hide(1, "Noura's own text", false);
-    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 1)).chapter.body).toBe("Noura's own text");
-    expect((await openChapter(SECOND_READER, "infj-t-h-reader", 1)).chapter.body).toBe("INFJ secret text 1");
+    await hide(2, "Noura's own text", false);
+    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 2)).chapter.body).toBe("Noura's own text");
+    expect((await openChapter(SECOND_READER, "infj-t-h-reader", 2)).chapter.body).toBe("INFJ secret text 2");
 
-    await hide(1, "   ", false);
-    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 1)).chapter.body).toBe("INFJ secret text 1");
+    await hide(2, "   ", false);
+    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 2)).chapter.body).toBe("INFJ secret text 2");
+  });
+
+  it("keeps the support line: the first chapter stays, and opens with it", async () => {
+    const SUPPORT = "الدعم في السعودية: 937 (وزارة الصحة) | الطوارئ: 911 | الهلال الأحمر: 997";
+    await expect(hide(1)).rejects.toThrow("first_chapter_stays");
+    await expect(hide(1, "no support line here", false)).rejects.toThrow("support_line");
+    await expect(hide(2, `${SUPPORT}\n\ntext`, false)).rejects.toThrow("support_line");
+    await expect(hide(1, `${SUPPORT}\n\n${SUPPORT}`, false)).rejects.toThrow("support_line");
+
+    await hide(1, `\n${SUPPORT}\n\nNoura's opening`, false);
+    expect((await openChapter(INFJ_READER, "infj-t-h-reader", 1)).chapter.body).toContain("Noura's opening");
   });
 
   it("shows the owner each chapter's state and the counts on the reader's book", async () => {
@@ -875,9 +886,6 @@ describe("one reader's copy of a shared book", () => {
     await hide(2);
     await expect(
       as("authenticated", INFJ_READER, `select * from public.reader_chapter_overrides`),
-    ).rejects.toThrow(/permission denied/);
-    await expect(
-      as("authenticated", INFJ_READER, `select public.chapter_hidden($1, gen_random_uuid())`, [INFJ_READER]),
     ).rejects.toThrow(/permission denied/);
   });
 });
