@@ -6,6 +6,7 @@ export {
   checkBookMeta,
   checkChapters,
   countWords,
+  digitLines,
   supportLineProblem,
   toChapters,
   withSupportLine,
@@ -40,4 +41,13 @@ export function figureContentType(name: string) {
 export function suggestedSlug(typeCode: string, kind: string) {
   const type = typeCode.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
   return [type, kind].filter(Boolean).join("-");
+}
+
+/**
+ * True when a Supabase error says books.active does not exist yet (migration
+ * 20261105060000 not applied): Postgres answers 42703, PostgREST's schema cache
+ * PGRST204 (write) or PGRST200/42703 (select).
+ */
+export function missingColumn(error: { code?: string; message?: string }) {
+  return ["42703", "PGRST204", "PGRST200"].includes(error.code ?? "") || /\bactive\b/.test(error.message ?? "");
 }

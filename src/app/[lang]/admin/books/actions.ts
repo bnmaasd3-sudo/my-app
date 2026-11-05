@@ -8,6 +8,7 @@ import {
   MAX_FIGURE,
   checkBookMeta,
   figureContentType,
+  missingColumn,
   supportLineProblem,
 } from "@/lib/book-import";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -32,6 +33,7 @@ export type ImportError =
   | "tooLarge"
   | "notFound"
   | "invalidFigure"
+  | "migrationPending"
   | "failed";
 
 export type ImportResult = { ok: true; existed?: boolean } | { ok: false; error: ImportError; position?: number };
@@ -106,6 +108,23 @@ export async function prepareBook(
   return insertError ? { ok: false, error: "failed" } : { ok: true, existed: false };
 }
 
+type ChapterRow = { position: number; title: string; body: string };
+
+
+/** One chapter as the browser sent it, checked: shape, size and the support-line rule. */
+function checkChapter(chapter: unknown): ChapterRow | { error: ImportError; position?: number } {
+  const raw = (chapter ?? {}) as Partial<ChapterRow>;
+  const position = Number(raw.position);
+  const title = String(raw.title ?? "").trim();
+  const body = String(raw.body ?? "").replace(/\r\n?/g, "\n");
+  if (!Number.isInteger(position) || position < 1 || position > 10_000 || !title || title.length > 300 || !body.trim()) {
+    return { error: "invalidChapter", position: Number.isInteger(position) ? position : undefined };
+  }
+  if (body.length > MAX_CHAPTER) return { error: "tooLarge", position };
+  if (supportLineProblem(position, body)) return { error: "supportLine", position };
+  return { position, title, body };
+}
+
 /**
  * Saves some of the book's chapters (the panel sends them in batches). Each is
  * checked again here: the browser's preview is only a preview.
@@ -121,17 +140,11 @@ export async function saveChapters(
     return { ok: false, error: "invalidChapter" };
   }
 
-  const rows: { position: number; title: string; body: string }[] = [];
+  const rows: ChapterRow[] = [];
   for (const chapter of chapters) {
-    const position = Number(chapter?.position);
-    const title = String(chapter?.title ?? "").trim();
-    const body = String(chapter?.body ?? "").replace(/\r\n?/g, "\n");
-    if (!Number.isInteger(position) || position < 1 || position > 10_000 || !title || title.length > 300 || !body.trim()) {
-      return { ok: false, error: "invalidChapter", position: Number.isInteger(position) ? position : undefined };
-    }
-    if (body.length > MAX_CHAPTER) return { ok: false, error: "tooLarge", position };
-    if (supportLineProblem(position, body)) return { ok: false, error: "supportLine", position };
-    rows.push({ position, title, body });
+    const checked = checkChapter(chapter);
+    if ("error" in checked) return { ok: false, ...checked };
+    rows.push(checked);
   }
 
   const { service } = owner;
@@ -168,4 +181,80 @@ export async function uploadFigure(formData: FormData): Promise<ImportResult> {
     .from("figures")
     .upload(`${slug}/figures/${file.name}`, file, { upsert: true, contentType: figureContentType(file.name) });
   return error ? { ok: false, error: "failed" } : { ok: true };
+}
+
+export type ChapterList = { ok: true; chapters: { position: number; title: string }[] } | { ok: false; error: ImportError };
+export type ChapterText = { ok: true; title: string; body: string } | { ok: false; error: ImportError };
+
+async function bookId(service: NonNullable<ReturnType<typeof createServiceClient>>, slug: string) {
+  const { data } = await service.from("books").select("id").eq("slug", String(slug)).maybeSingle();
+  return data?.id as string | undefined;
+}
+
+/** The chapters of a book, titles only, for the owner's editor. */
+export async function listChapters(slug: string): Promise<ChapterList> {
+  const owner = await ownerService();
+  if ("error" in owner) return { ok: false, error: owner.error };
+  const id = await bookId(owner.service, slug);
+  if (!id) return { ok: false, error: "notFound" };
+  const { data, error } = await owner.service
+    .from("chapters")
+    .select("position, title")
+    .eq("book_id", id)
+    .order("position");
+  return error ? { ok: false, error: "failed" } : { ok: true, chapters: data ?? [] };
+}
+
+/** One chapter's title and text, for the owner to edit. */
+export async function loadChapter(slug: string, position: number): Promise<ChapterText> {
+  const owner = await ownerService();
+  if ("error" in owner) return { ok: false, error: owner.error };
+  const id = await bookId(owner.service, slug);
+  if (!id) return { ok: false, error: "notFound" };
+  const { data, error } = await owner.service
+    .from("chapters")
+    .select("title, body")
+    .eq("book_id", id)
+    .eq("position", Number(position))
+    .maybeSingle();
+  if (error) return { ok: false, error: "failed" };
+  return data ? { ok: true, title: data.title, body: data.body } : { ok: false, error: "notFound" };
+}
+
+/** Saves the owner's edit of one existing chapter, with the importer's checks. */
+export async function saveChapter(slug: string, chapter: ChapterRow): Promise<ImportResult> {
+  const owner = await ownerService();
+  if ("error" in owner) return { ok: false, error: owner.error };
+  const checked = checkChapter(chapter);
+  if ("error" in checked) return { ok: false, ...checked };
+  const id = await bookId(owner.service, slug);
+  if (!id) return { ok: false, error: "notFound" };
+  const { data, error } = await owner.service
+    .from("chapters")
+    .update({ title: checked.title, body: checked.body })
+    .eq("book_id", id)
+    .eq("position", checked.position)
+    .select("id");
+  if (error) return { ok: false, error: "failed" };
+  if (!data || data.length === 0) return { ok: false, error: "notFound", position: checked.position };
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Takes a book down (hidden from every library, not openable) or puts it back
+ * up. Nothing is deleted. Needs migration 20261105060000 (books.active).
+ */
+export async function setBookActive(slug: string, active: boolean): Promise<ImportResult> {
+  const owner = await ownerService();
+  if ("error" in owner) return { ok: false, error: owner.error };
+  const { data, error } = await owner.service
+    .from("books")
+    .update({ active: active === true })
+    .eq("slug", String(slug))
+    .select("id");
+  if (error) return { ok: false, error: missingColumn(error) ? "migrationPending" : "failed" };
+  if (!data || data.length === 0) return { ok: false, error: "notFound" };
+  refresh();
+  return { ok: true };
 }

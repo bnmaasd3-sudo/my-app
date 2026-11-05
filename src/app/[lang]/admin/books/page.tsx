@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import type { Locale } from "@/i18n/config";
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
+import { missingColumn } from "@/lib/book-import";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SiteFooter } from "../../site-footer";
@@ -50,17 +51,24 @@ async function OwnerBooks({ dict }: { lang: Locale; dict: Dictionary }) {
   // through the service key, after the is_admin check above.
   const service = createServiceClient();
   if (!service) return <p className="text-accent">{dict.admin.bookImport.errors.noServiceKey}</p>;
-  const { data } = await service
-    .from("books")
-    .select("slug, title, lang, type_code, kind, chapters(count)")
-    .order("title");
-  const books: ExistingBook[] = (data ?? []).map((book) => ({
-    slug: book.slug,
-    title: book.title,
-    lang: book.lang,
-    typeCode: book.type_code,
-    kind: book.kind,
-    chapters: (book.chapters as unknown as { count: number }[])?.[0]?.count ?? 0,
+  // books.active comes with migration 20261105060000; until it is applied every book counts as up.
+  const columns = "slug, title, lang, type_code, kind, chapters(count)";
+  const withActive = await service.from("books").select(`${columns}, active`).order("title");
+  // Only a missing column falls back; any other error is shown, not hidden.
+  if (withActive.error && !missingColumn(withActive.error)) {
+    return <p className="text-accent">{dict.admin.bookImport.errors.failed}</p>;
+  }
+  const rows: Record<string, unknown>[] | null = withActive.error
+    ? (await service.from("books").select(columns).order("title")).data
+    : withActive.data;
+  const books: ExistingBook[] = (rows ?? []).map((book) => ({
+    slug: book.slug as string,
+    title: book.title as string,
+    lang: book.lang as string,
+    typeCode: (book.type_code as string | null) ?? null,
+    kind: book.kind as string,
+    chapters: (book.chapters as { count: number }[] | undefined)?.[0]?.count ?? 0,
+    active: book.active !== false,
   }));
 
   return <BookImport books={books} labels={dict.admin.bookImport} kinds={dict.library.kinds} />;

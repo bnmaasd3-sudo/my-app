@@ -257,14 +257,29 @@
         "notFound": "The book does not exist yet. Publish it first.",
         "invalidFigure": "Name images with plain letters and digits, ending in png, jpg, webp or gif.",
         "failed": "Could not save. Try again.",
-        "slugTaken": "That slug belongs to an existing book. Choose \"Update an existing book\" or change the slug."
+        "slugTaken": "That slug belongs to an existing book. Choose \"Update an existing book\" or change the slug.",
+        "migrationPending": "Taking a book down needs the database migration 20261105060000_book_active first."
       },
       "figures": "Add images",
       "figuresLead": "Uploaded to the book's private image store, and referenced in the text as ![caption](الأشكال/name.png). An image with the same name is replaced.",
       "figureFiles": "Images",
       "upload": "Upload",
       "uploading": "Uploading…",
-      "uploaded": "Uploaded"
+      "uploaded": "Uploaded",
+      "editChapters": "Edit chapters",
+      "closeEditor": "Close",
+      "chooseChapter": "Choose a chapter to edit.",
+      "chapterTitle": "Chapter title",
+      "chapterBody": "Chapter text (Markdown)",
+      "saveChapter": "Save chapter",
+      "savingChapter": "Saving…",
+      "savedChapter": "Chapter saved. Readers with their own replacement text for this chapter keep theirs.",
+      "loading": "One moment…",
+      "takeDown": "Remove from libraries",
+      "takeDownConfirm": "The book will be hidden from every reader's library and can't be opened. Nothing in it is erased and you can put it back at any time. If it is linked to a Salla product, unlink that first so it is not sold. Continue?",
+      "putBack": "Put the book back",
+      "takenDown": "Taken down: hidden from readers",
+      "discardChanges": "This chapter has unsaved changes. Discard them?"
     }
   },
   "footer": {
