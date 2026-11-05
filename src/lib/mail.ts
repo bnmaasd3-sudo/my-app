@@ -66,12 +66,12 @@ export function welcomeMail({
   const button = fill(text.button);
 
   const plain = [greeting, "", body, "", `${button}: ${loginUrl}`, "", footer].join("\n");
-  const html = `<!doctype html><html dir="${dir}"><body style="font-family:Tahoma,Arial,sans-serif;line-height:1.8;color:#1f1b16;background:#faf7f2;padding:24px">
+  const html = `<!doctype html><html dir="${dir}"><body style="font-family:Tahoma,Arial,sans-serif;line-height:1.8;color:#1f1b16;background:#f7f4ee;padding:24px">
 <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e7e0d5;border-radius:16px;padding:24px">
-<h1 style="font-size:20px;margin:0 0 12px;color:#0f5c5a">${escapeHtml(appName)}</h1>
+<h1 style="font-size:20px;margin:0 0 12px;color:#0e5752">${escapeHtml(appName)}</h1>
 <p>${escapeHtml(greeting)}</p>
 <p>${escapeHtml(body)}</p>
-<p><a href="${escapeHtml(loginUrl)}" style="display:inline-block;background:#0f5c5a;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:999px">${escapeHtml(button)}</a></p>
+<p><a href="${escapeHtml(loginUrl)}" style="display:inline-block;background:#0e5752;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:999px">${escapeHtml(button)}</a></p>
 <p style="color:#6b6258;font-size:13px">${escapeHtml(footer)}</p>
 </div></body></html>`;
   return { to, subject, text: plain, html };
