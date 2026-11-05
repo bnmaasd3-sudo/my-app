@@ -12,9 +12,9 @@ type Props = {
 };
 
 const inputClass =
-  "w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-lg outline-none transition-colors focus:border-accent";
+  "w-full rounded-xl border border-transparent bg-surface px-4 py-3.5 outline-none transition-colors focus:border-accent";
 const primaryClass =
-  "rounded-2xl bg-accent px-6 py-3.5 font-heading text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60";
+  "rounded-xl bg-accent px-6 py-3.5 font-heading text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60";
 
 export function LoginForm({ action, dict, linkError = false }: Props) {
   const [state, formAction, pending] = useActionState(action, {
@@ -28,7 +28,7 @@ export function LoginForm({ action, dict, linkError = false }: Props) {
       {state.step === "email" ? (
         <>
           <label className="flex flex-col gap-2">
-            <span className="font-heading">{dict.emailLabel}</span>
+            <span className="text-muted">{dict.emailLabel}</span>
             <input
               name="email"
               type="email"
@@ -46,7 +46,7 @@ export function LoginForm({ action, dict, linkError = false }: Props) {
         </>
       ) : (
         <>
-          <p className="leading-relaxed text-muted" role="status">
+          <p className="text-muted" role="status">
             {dict.codeSent}
           </p>
           <input type="hidden" name="email" value={state.email} />
@@ -54,7 +54,7 @@ export function LoginForm({ action, dict, linkError = false }: Props) {
             {state.email}
           </p>
           <label className="flex flex-col gap-2">
-            <span className="font-heading">{dict.codeLabel}</span>
+            <span className="text-muted">{dict.codeLabel}</span>
             <input
               name="code"
               dir="ltr"
@@ -72,14 +72,14 @@ export function LoginForm({ action, dict, linkError = false }: Props) {
             value="reset"
             formNoValidate
             disabled={pending}
-            className="text-sm text-muted underline"
+            className="self-start text-sm text-muted underline underline-offset-4"
           >
             {dict.changeEmail}
           </button>
         </>
       )}
       {state.error && (
-        <p role="alert" className="rounded-2xl bg-surface p-4 text-sm leading-relaxed">
+        <p role="alert" className="text-accent">
           {dict.errors[state.error]}
         </p>
       )}

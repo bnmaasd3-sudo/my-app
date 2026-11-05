@@ -1,6 +1,5 @@
 "use client";
 
-import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { neutralizeMarkup } from "@/lib/neutralize";
@@ -151,14 +150,12 @@ export function TestEngineHost({ userId, isOwner, labels, fixture }: Props) {
         </div>
         <div id="main" />
         {state === "loading" && (
-          <p className="flex items-center gap-2 text-muted" role="status">
-            <LoaderCircle size={18} aria-hidden className="animate-spin" />
+          <p className="text-muted" role="status">
             {labels.loading}
           </p>
         )}
         {state === "error" && (
-          <p className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-4" role="alert">
-            <TriangleAlert size={18} aria-hidden className="shrink-0 text-accent" />
+          <p className="border-y border-border py-4 text-accent" role="alert">
             {labels.loadError}
           </p>
         )}

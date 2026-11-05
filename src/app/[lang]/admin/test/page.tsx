@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n/config";
 import { getDictionary, type Dictionary } from "@/i18n/dictionaries";
 import { currentLocale } from "@/i18n/locale";
 import { createClient } from "@/lib/supabase/server";
+import { SiteFooter } from "../../site-footer";
 import { SiteHeader } from "../../site-header";
 import { TestEngineHost } from "../../test/test-engine-host";
 
@@ -22,7 +23,7 @@ export default async function AdminTestPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-5">
-      <SiteHeader lang={lang} dict={dict} path="/admin/test" signedIn />
+      <SiteHeader lang={lang} dict={dict} signedIn />
       <main className="flex flex-1 flex-col gap-4 py-6">
         <Link
           href={`/${lang}/admin`}
@@ -37,6 +38,7 @@ export default async function AdminTestPage() {
           <OwnerTest lang={lang} dict={dict} />
         </Suspense>
       </main>
+      <SiteFooter lang={lang} dict={dict} path="/admin/test" />
     </div>
   );
 }

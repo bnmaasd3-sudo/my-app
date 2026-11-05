@@ -57,14 +57,12 @@
     "start": "Start reading",
     "continue": "Continue reading",
     "contents": "Contents",
-    "lead": "Your types. Open a type to see its books and test.",
     "testTitle": "Type test",
     "kinds": {
       "encyclopedia": "Encyclopedia",
       "novel": "Novel",
       "appendix": "Appendices"
     },
-    "otherBooks": "Other books",
     "typeSubtitles": {
       "INFJ-T-H": "Male"
     },
@@ -191,7 +189,6 @@
   },
   "test": {
     "title": "Type test",
-    "back": "Back to my library",
     "lead": "Answer as you are when nobody asks anything of you. Your answers are saved to your account as you go. The test itself is in Arabic.",
     "timeLeft": "Time left since you opened it",
     "loading": "Loading the test…",

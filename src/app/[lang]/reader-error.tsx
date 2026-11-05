@@ -12,9 +12,9 @@ export function ReaderError({ kind, lang, dict }: Props) {
   if (kind === "notFound") notFound();
 
   return (
-    <div role="alert" className="flex flex-col items-start gap-4 rounded-2xl border border-border bg-surface p-6">
-      <p className="leading-relaxed">{dict.errors[kind]}</p>
-      <Link href={`/${lang}/library`} className="text-accent underline">
+    <div role="alert" className="flex flex-col items-start gap-4 border-y border-border py-6">
+      <p>{dict.errors[kind]}</p>
+      <Link href={`/${lang}/library`} className="text-accent underline underline-offset-4">
         {dict.errors.backToLibrary}
       </Link>
     </div>
