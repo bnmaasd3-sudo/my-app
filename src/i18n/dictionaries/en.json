@@ -66,7 +66,13 @@
     "typeSubtitles": {
       "INFJ-T-H": "Male"
     },
-    "typeSubtitleDefault": "Type"
+    "typeSubtitleDefault": "Type",
+    "install": {
+      "android": "Install Sajiyya on your home screen so it opens like an app, without the browser bar.",
+      "ios": "To add Sajiyya to your home screen: tap Share in Safari, then \"Add to Home Screen\".",
+      "install": "Install the app",
+      "later": "Later"
+    }
   },
   "reader": {
     "contents": "Contents",
