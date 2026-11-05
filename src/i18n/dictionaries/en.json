@@ -57,7 +57,7 @@
     "start": "Start reading",
     "continue": "Continue reading",
     "contents": "Contents",
-    "lead": "Your books and the tests open to you.",
+    "lead": "Your types. Open a type to see its books and test.",
     "testTitle": "Type test",
     "kinds": {
       "encyclopedia": "Encyclopedia",

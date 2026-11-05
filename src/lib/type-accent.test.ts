@@ -8,7 +8,9 @@ describe("typeAccent", () => {
 
   it("gives different types different hues", () => {
     expect(typeHue("INFJ-T-H")).not.toBe(typeHue("ESFJ-T-H"));
-    expect(typeHue("INFJ-T-H")).toBeGreaterThanOrEqual(0);
-    expect(typeHue("INFJ-T-H")).toBeLessThan(360);
+    for (const code of ["INFJ-T-H", "ESFJ-T-H", "ENTP-A-C", "ISTJ"]) {
+      expect(typeHue(code)).toBeGreaterThanOrEqual(0);
+      expect(typeHue(code)).toBeLessThan(360);
+    }
   });
 });

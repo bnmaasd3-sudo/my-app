@@ -62,4 +62,5 @@ export const books: LibraryBook[] = [
   { slug: "fixture-novel", title: "رواية تجريبية بعنوان أطول قليلًا من غيرها", lang: "ar", position: null, chapters: 16, type_code: "INFJ-T-H", kind: "novel" },
   { slug: "fixture-appendix", title: "ملحقات تجريبية", lang: "ar", position: 2, chapters: 8, type_code: "INFJ-T-H", kind: "appendix" },
   { slug: "fixture-esfj", title: "موسوعة تجريبية ثانية", lang: "ar", position: null, chapters: 30, type_code: "ESFJ-T-H", kind: "encyclopedia" },
+  { slug: "fixture-other", title: "كتاب آخر بلا نمط", lang: "ar", position: 4, chapters: 12, type_code: null, kind: "encyclopedia" },
 ];

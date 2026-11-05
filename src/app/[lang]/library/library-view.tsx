@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { dir, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { format } from "@/i18n/format";
 import { typeAccent } from "@/lib/type-accent";
 import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
@@ -89,20 +90,26 @@ export function LibraryShelves({
       )}
 
       {others.length > 0 && (
-        <section aria-labelledby="other-books" className="flex flex-col gap-3">
-          <h2 id="other-books" className="font-heading text-base font-semibold text-muted">
-            {dict.library.otherBooks}
-          </h2>
-          <ul className="flex flex-col gap-2">
+        <section aria-label={dict.library.otherBooks} className="flex flex-col gap-3">
+          {types.length > 0 && (
+            <h2 className="font-heading text-base font-semibold text-muted">{dict.library.otherBooks}</h2>
+          )}
+          <ul className="flex flex-col gap-3">
             {others.map((book) => (
               <li key={book.slug}>
                 <Link
                   prefetch={false}
                   href={`/${lang}/read/${book.slug}/${book.position ?? 1}`}
-                  className="block rounded-2xl bg-surface px-5 py-4 transition-colors hover:bg-accent/5"
+                  className="flex items-center justify-between gap-4 rounded-2xl bg-surface px-5 py-5 transition-colors hover:bg-accent/5"
                 >
-                  <span lang={book.lang} dir={dir(book.lang)} className="font-heading font-semibold">
-                    {book.title}
+                  <span className="flex min-w-0 flex-col gap-1">
+                    <span lang={book.lang} dir={dir(book.lang)} className="font-heading font-semibold">
+                      {book.title}
+                    </span>
+                    <span className="text-sm text-muted">{format(dict.type.chapters, { n: book.chapters })}</span>
+                  </span>
+                  <span className="shrink-0 text-sm font-medium text-accent">
+                    {book.position ? dict.type.continue : dict.type.start}
                   </span>
                 </Link>
               </li>

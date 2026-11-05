@@ -10,9 +10,21 @@ import type { LibraryBook } from "../../library/library-view";
 import { ReaderError } from "../../reader-error";
 import { TypeView } from "../type-view";
 
+/** The type code in the address, or null when it is not one (a malformed address included). */
+function typeCodeFrom(raw: string) {
+  let code: string;
+  try {
+    code = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  return /^[A-Z]{4}(-[A-Z]){0,2}$/.test(code) ? code : null;
+}
+
 export async function generateMetadata({ params }: PageProps<"/[lang]/type/[code]">): Promise<Metadata> {
-  const { code } = await params;
-  return { title: decodeURIComponent(code) };
+  const code = typeCodeFrom((await params).code);
+  const dict = await getDictionary(await currentLocale());
+  return { title: code ?? dict.library.title };
 }
 
 /** One type's page: the reader's books of that type, and the test. */
@@ -35,8 +47,8 @@ async function TypeBooks({
   lang: Locale;
   dict: Dictionary;
 }) {
-  const code = decodeURIComponent((await params).code);
-  if (!/^[A-Z]{4}(-[A-Z]){0,2}$/.test(code)) notFound();
+  const code = typeCodeFrom((await params).code);
+  if (!code) notFound();
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("my_library");
