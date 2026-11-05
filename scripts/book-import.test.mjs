@@ -1,6 +1,14 @@
 import { PGlite } from "@electric-sql/pglite";
 import { describe, expect, it } from "vitest";
-import { SUPPORT_LINE, checkChapters, countWords, toChapters, toSql } from "./lib/book-import.mjs";
+import {
+  SUPPORT_LINE,
+  checkChapters,
+  countWords,
+  supportLineProblem,
+  toChapters,
+  toSql,
+  withSupportLine,
+} from "./lib/book-import.mjs";
 
 const file = (name, text) => ({ name, text });
 
@@ -106,5 +114,40 @@ describe("toSql with a type", () => {
     const sql = toSql({ slug: "infj-t-h-novel", title: "رواية", lang: "ar", typeCode: "INFJ-T-H", kind: "novel" }, []);
     expect(sql).toContain("insert into public.books (slug, title, lang, type_code, kind)");
     expect(sql).toContain("'ar', 'INFJ-T-H', 'novel')");
+  });
+});
+
+describe("one file split at second-level headings", () => {
+  it("splits at \"## \" when the file has fewer than two \"# \" headings", () => {
+    const chapters = toChapters([file("book.md", `# الكتاب\n${SUPPORT_LINE}\n\n## أ\nنص أ\n## ب\nنص ب`)]);
+    expect(chapters.map((c) => c.title)).toEqual(["أ", "ب"]);
+    // The book's own "# " title is dropped; the support line opens chapter one.
+    expect(chapters[0].body).toBe(`${SUPPORT_LINE}\n\nنص أ`);
+  });
+
+  it("takes a \"## \" first line as the title of a chapter file", () => {
+    const chapters = toChapters([file("1.md", "## أ\nنص"), file("2.md", "## ب\nنص")]);
+    expect(chapters.map((c) => [c.title, c.body])).toEqual([["أ", "نص"], ["ب", "نص"]]);
+  });
+});
+
+describe("support line", () => {
+  it("adds it to the first chapter when the book lacks it", () => {
+    const { chapters, added } = withSupportLine([{ position: 1, title: "أ", body: "نص", source: "1" }]);
+    expect(added).toBe(true);
+    expect(checkChapters(chapters).filter((p) => !p.warning)).toEqual([]);
+  });
+
+  it("leaves a book that already carries it", () => {
+    const book = [{ position: 1, title: "أ", body: `${SUPPORT_LINE}\n\nنص`, source: "1" }];
+    expect(withSupportLine(book)).toEqual({ chapters: book, added: false });
+  });
+
+  it("checks one chapter at a time", () => {
+    expect(supportLineProblem(1, `\n${SUPPORT_LINE}\n\nنص`)).toBeNull();
+    expect(supportLineProblem(1, "نص")).toBe("support-line");
+    expect(supportLineProblem(1, `${SUPPORT_LINE}\n${SUPPORT_LINE}`)).toBe("support-line");
+    expect(supportLineProblem(2, "نص")).toBeNull();
+    expect(supportLineProblem(2, `نص\n${SUPPORT_LINE}`)).toBe("support-line");
   });
 });

@@ -14,6 +14,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  experimental: {
+    // The owner panel uploads chapters in batches of about 2MB and figures up
+    // to 4MB; Vercel itself caps a request at 4.5MB.
+    serverActions: { bodySizeLimit: "4.4mb" },
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

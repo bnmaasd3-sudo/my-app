@@ -32,6 +32,7 @@ const SCREENS = [
   { name: "type", path: "type", text: "main", column: ":has(> main)" },
   { name: "test", path: "test", text: "main", column: ":has(> main)" },
   { name: "test-owner", path: "test-owner", text: "main", column: ":has(> main)" },
+  { name: "books", path: "books", text: "main", column: "main" },
 ];
 
 let browser: Browser;

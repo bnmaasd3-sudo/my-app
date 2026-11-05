@@ -10,7 +10,8 @@ const naturalCompare = (a, b) => a.localeCompare(b, undefined, { numeric: true }
 
 /**
  * Turns source files into ordered chapters. One file per chapter; a single
- * file is split at each top-level "# " heading instead.
+ * file is split at each "# " heading instead, or at each "## " heading when it
+ * has fewer than two "# " headings.
  * @param {{ name: string, text: string }[]} files
  */
 export function toChapters(files) {
@@ -29,7 +30,8 @@ const titleFromName = (name) =>
 
 function parseFile({ name, text }, source = name) {
   const normalized = text.replace(/\r\n?/g, "\n").trim();
-  const match = /^#\s+(.+)\n?/.exec(normalized);
+  // The title is the first line when it is a "# " or "## " heading.
+  const match = /^#{1,2}\s+(.+)\n?/.exec(normalized);
   return {
     source,
     title: match ? match[1].trim() : titleFromName(name),
@@ -39,14 +41,47 @@ function parseFile({ name, text }, source = name) {
 
 function splitAtHeadings({ name, text }) {
   const normalized = text.replace(/\r\n?/g, "\n");
-  const parts = normalized.split(/^(?=#\s)/m).filter((part) => part.trim() !== "");
+  const level = (normalized.match(/^#\s/gm) ?? []).length >= 2 ? "#" : "##";
+  const heading = new RegExp(`^${level}\\s`);
+  const parts = normalized.split(new RegExp(`^(?=${level}\\s)`, "m")).filter((part) => part.trim() !== "");
   // Text before the first heading (the support line) opens the first chapter.
-  if (parts.length > 1 && !/^#\s/.test(parts[0])) {
-    const preamble = parts.shift().trim();
+  if (parts.length > 1 && !heading.test(parts[0])) {
+    // Split at "## ", a "# " line before the first chapter is the book's own title.
+    const preamble = parts
+      .shift()
+      .replace(level === "##" ? /^#\s.*$/m : /$^/, "")
+      .trim();
     const [heading, ...rest] = parts[0].split("\n");
     parts[0] = [heading, preamble, "", ...rest].join("\n");
   }
   return parts.map((part, index) => parseFile({ name, text: part }, `${name} § ${index + 1}`));
+}
+
+/**
+ * Puts the support line at the start of the first chapter when the book does
+ * not carry it anywhere. Returns the chapters and whether the line was added.
+ * (A book that has it in the wrong place is left for checkChapters to refuse.)
+ */
+export function withSupportLine(chapters) {
+  if (chapters.length === 0 || chapters.some((chapter) => chapter.body.includes(SUPPORT_LINE))) {
+    return { chapters, added: false };
+  }
+  const [first, ...rest] = chapters;
+  return { chapters: [{ ...first, body: `${SUPPORT_LINE}\n\n${first.body}` }, ...rest], added: true };
+}
+
+/**
+ * The support-line rule for one chapter on its own, for checks that see a
+ * chapter at a time: the first chapter opens with it once, no other has it.
+ */
+export function supportLineProblem(position, body) {
+  const lines = body.replace(/\r\n?/g, "\n").split("\n");
+  const count = lines.filter((line) => line.includes(SUPPORT_LINE)).length;
+  if (position === 1) {
+    const firstLine = lines.find((line) => line.trim() !== "")?.trim();
+    return firstLine === SUPPORT_LINE && count === 1 ? null : "support-line";
+  }
+  return count === 0 ? null : "support-line";
 }
 
 export const countWords = (text) => text.split(/\s+/).filter(Boolean).length;
@@ -115,7 +150,10 @@ function dollarTag(texts) {
 
 export const BOOK_KINDS = ["encyclopedia", "novel", "appendix"];
 
-/** Throws on a slug, language, type or kind the database would refuse. */
+/**
+ * Throws on a slug, language, type or kind the database would refuse.
+ * @param {{ slug: string, lang: string, typeCode?: string | null, kind?: string }} meta
+ */
 export function checkBookMeta({ slug, lang, typeCode = null, kind = "encyclopedia" }) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error(`Invalid slug: ${slug}`);
   if (!["ar", "en"].includes(lang)) throw new Error(`Invalid lang: ${lang}`);
