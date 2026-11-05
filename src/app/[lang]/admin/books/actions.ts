@@ -24,6 +24,7 @@ export type BookMeta = {
 export type ImportError =
   | "notOwner"
   | "noServiceKey"
+  | "slugTaken"
   | "invalidBook"
   | "fewerChapters"
   | "invalidChapter"
@@ -69,11 +70,16 @@ function validMeta(meta: BookMeta): BookMeta | null {
 }
 
 /**
- * Adds the book, or updates the title, language, type and kind of the one with
- * this slug. An update may not have fewer chapters than the book already has:
- * chapters are never deleted (their reads and saved places point at them).
+ * Adds a new book (refused if the slug is taken), or updates the title,
+ * language, type and kind of an existing one. An update may not have fewer
+ * chapters than the book already has: chapters are never deleted (their reads
+ * and saved places point at them).
  */
-export async function prepareBook(meta: BookMeta, chapterCount: number): Promise<ImportResult> {
+export async function prepareBook(
+  meta: BookMeta,
+  chapterCount: number,
+  mode: "new" | "update",
+): Promise<ImportResult> {
   const owner = await ownerService();
   if ("error" in owner) return { ok: false, error: owner.error };
   const book = validMeta(meta);
@@ -84,12 +90,15 @@ export async function prepareBook(meta: BookMeta, chapterCount: number): Promise
   if (error) return { ok: false, error: "failed" };
 
   const row = { title: book.title, lang: book.lang, type_code: book.typeCode, kind: book.kind };
+  if (mode === "new" && existing) return { ok: false, error: "slugTaken" };
+  if (mode === "update" && !existing) return { ok: false, error: "notFound" };
   if (existing) {
-    const { count } = await service
+    const { count, error: countError } = await service
       .from("chapters")
       .select("id", { count: "exact", head: true })
       .eq("book_id", existing.id);
-    if ((count ?? 0) > chapterCount) return { ok: false, error: "fewerChapters" };
+    if (countError || count === null) return { ok: false, error: "failed" };
+    if (count > chapterCount) return { ok: false, error: "fewerChapters" };
     const { error: updateError } = await service.from("books").update(row).eq("id", existing.id);
     return updateError ? { ok: false, error: "failed" } : { ok: true, existed: true };
   }
@@ -104,6 +113,7 @@ export async function prepareBook(meta: BookMeta, chapterCount: number): Promise
 export async function saveChapters(
   slug: string,
   chapters: { position: number; title: string; body: string }[],
+  last = true,
 ): Promise<ImportResult> {
   const owner = await ownerService();
   if ("error" in owner) return { ok: false, error: owner.error };
@@ -135,7 +145,8 @@ export async function saveChapters(
       { onConflict: "book_id,position" },
     );
   if (error) return { ok: false, error: "failed" };
-  refresh();
+  // Re-render the panel once, after the last batch.
+  if (last) refresh();
   return { ok: true };
 }
 

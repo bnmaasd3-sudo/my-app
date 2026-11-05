@@ -57,7 +57,7 @@ beforeEach(() => {
 describe("book import from the owner panel", () => {
   it("refuses anyone who is not the owner, before touching the service key", async () => {
     isAdmin = false;
-    expect(await prepareBook(meta, 3)).toEqual({ ok: false, error: "notOwner" });
+    expect(await prepareBook(meta, 3, "new")).toEqual({ ok: false, error: "notOwner" });
     expect(await saveChapters(meta.slug, [{ position: 1, title: "أ", body: SUPPORT_LINE }])).toEqual({
       ok: false,
       error: "notOwner",
@@ -72,21 +72,29 @@ describe("book import from the owner panel", () => {
 
   it("says so when the service key is not set", async () => {
     serviceKey = false;
-    expect(await prepareBook(meta, 3)).toEqual({ ok: false, error: "noServiceKey" });
+    expect(await prepareBook(meta, 3, "new")).toEqual({ ok: false, error: "noServiceKey" });
   });
 
   it("adds a new book, and refuses bad slugs and types", async () => {
-    expect(await prepareBook(meta, 3)).toEqual({ ok: true, existed: false });
+    expect(await prepareBook(meta, 3, "new")).toEqual({ ok: true, existed: false });
     expect(writes[0]).toMatchObject({ table: "books", op: "insert" });
-    expect(await prepareBook({ ...meta, slug: "Bad Slug" }, 3)).toMatchObject({ error: "invalidBook" });
-    expect(await prepareBook({ ...meta, typeCode: "infj!" }, 3)).toMatchObject({ error: "invalidBook" });
+    expect(await prepareBook({ ...meta, slug: "Bad Slug" }, 3, "new")).toMatchObject({ error: "invalidBook" });
+    expect(await prepareBook({ ...meta, typeCode: "infj!" }, 3, "new")).toMatchObject({ error: "invalidBook" });
   });
 
   it("never lets an update drop chapters", async () => {
     existingBook = { id: "book-1" };
     existingChapters = 5;
-    expect(await prepareBook(meta, 4)).toEqual({ ok: false, error: "fewerChapters" });
-    expect(await prepareBook(meta, 5)).toEqual({ ok: true, existed: true });
+    expect(await prepareBook(meta, 4, "update")).toEqual({ ok: false, error: "fewerChapters" });
+    expect(await prepareBook(meta, 5, "update")).toEqual({ ok: true, existed: true });
+  });
+
+  it("never lets a new book take an existing book's slug", async () => {
+    existingBook = { id: "book-1" };
+    expect(await prepareBook(meta, 5, "new")).toEqual({ ok: false, error: "slugTaken" });
+    existingBook = null;
+    expect(await prepareBook(meta, 5, "update")).toEqual({ ok: false, error: "notFound" });
+    expect(writes).toEqual([]);
   });
 
   it("checks the support line again on the server", async () => {
@@ -117,6 +125,7 @@ describe("book import from the owner panel", () => {
     };
     expect(await uploadFigure(form("../evil.png"))).toMatchObject({ error: "invalidFigure" });
     expect(await uploadFigure(form("شكل.png"))).toMatchObject({ error: "invalidFigure" });
+    expect(await uploadFigure(form("drawing.svg"))).toMatchObject({ error: "invalidFigure" });
     expect(await uploadFigure(form("fig-1.png"))).toEqual({ ok: true });
     expect(uploads).toEqual(["infj-t-h-novel/figures/fig-1.png"]);
   });

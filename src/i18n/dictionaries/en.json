@@ -249,8 +249,9 @@
         "supportLine": "The support line must open chapter one, once, and appear nowhere else.",
         "tooLarge": "The file is larger than allowed.",
         "notFound": "The book does not exist yet. Publish it first.",
-        "invalidFigure": "Name images with plain letters and digits, ending in png, jpg, webp, gif or svg.",
-        "failed": "Could not save. Try again."
+        "invalidFigure": "Name images with plain letters and digits, ending in png, jpg, webp or gif.",
+        "failed": "Could not save. Try again.",
+        "slugTaken": "That slug belongs to an existing book. Choose \"Update an existing book\" or change the slug."
       },
       "figures": "Add images",
       "figuresLead": "Uploaded to the book's private image store, and referenced in the text as ![caption](الأشكال/name.png). An image with the same name is replaced.",

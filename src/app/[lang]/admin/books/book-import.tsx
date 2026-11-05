@@ -34,8 +34,14 @@ type Problem = { kind: string; chapter?: number; warning?: boolean; message: str
 const field = "w-full rounded-xl border border-transparent bg-surface px-4 py-2.5 outline-none focus:border-accent";
 const button =
   "self-start rounded-xl bg-accent px-6 py-2.5 font-heading text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50";
-/** Chapters sent per call, kept well under the server action body limit. */
-const BATCH_CHARS = 2_000_000;
+/**
+ * Each call carries at most this many bytes of chapter text (UTF-8: Arabic is
+ * two bytes a letter) and this many chapters, under the 4.4mb action limit
+ * and the server's 200-chapter cap.
+ */
+const BATCH_BYTES = 3_000_000;
+const BATCH_CHAPTERS = 100;
+const utf8 = new TextEncoder();
 
 export function BookImport({
   books,
@@ -143,9 +149,18 @@ function ChapterImport({
   }
 
   const publish = async () => {
+    try {
+      await publishChapters();
+    } catch {
+      // A thrown action (network, size, expired session) must not leave the button stuck.
+      setStatus({ kind: "error", text: labels.errors.failed });
+    }
+  };
+
+  const publishChapters = async () => {
     const meta: BookMeta = { slug: finalSlug, title, lang, typeCode: typeCode.trim() || null, kind };
     setStatus({ kind: "busy", text: format(labels.publishing, { done: 0, total: chapters.length }) });
-    const prepared = await prepareBook(meta, chapters.length);
+    const prepared = await prepareBook(meta, chapters.length, mode);
     if (!prepared.ok) return setStatus({ kind: "error", text: errorText(labels, prepared) });
 
     let batch: ImportedChapter[] = [];
@@ -156,6 +171,7 @@ function ChapterImport({
       const result = await saveChapters(
         finalSlug,
         batch.map(({ position, title: chapterTitle, body }) => ({ position, title: chapterTitle, body })),
+        done + batch.length === chapters.length,
       );
       if (!result.ok) {
         setStatus({ kind: "error", text: errorText(labels, result) });
@@ -168,9 +184,10 @@ function ChapterImport({
       return true;
     };
     for (const chapter of chapters) {
-      if (size + chapter.body.length > BATCH_CHARS && !(await flush())) return;
+      const bytes = utf8.encode(chapter.body).length + utf8.encode(chapter.title).length;
+      if ((size + bytes > BATCH_BYTES || batch.length >= BATCH_CHAPTERS) && !(await flush())) return;
       batch.push(chapter);
-      size += chapter.body.length;
+      size += bytes;
     }
     if (!(await flush())) return;
     setStatus({ kind: "done", text: format(labels.published, { n: chapters.length }) });
@@ -358,8 +375,12 @@ function FigureUpload({ books, labels }: { books: ExistingBook[]; labels: Labels
         const form = new FormData();
         form.set("slug", slug);
         form.set("file", file);
-        const result = await uploadFigure(form);
-        next[file.name] = result.ok ? labels.uploaded : labels.errors[result.error];
+        try {
+          const result = await uploadFigure(form);
+          next[file.name] = result.ok ? labels.uploaded : labels.errors[result.error];
+        } catch {
+          next[file.name] = labels.errors.failed;
+        }
       }
       setResults({ ...next });
     }
@@ -385,7 +406,7 @@ function FigureUpload({ books, labels }: { books: ExistingBook[]; labels: Labels
         <input
           type="file"
           multiple
-          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+          accept="image/png,image/jpeg,image/webp,image/gif"
           onChange={(event) => {
             setFiles([...(event.target.files ?? [])]);
             setResults({});

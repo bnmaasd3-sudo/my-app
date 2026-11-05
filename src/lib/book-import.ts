@@ -17,8 +17,12 @@ export type ImportedChapter = { position: number; title: string; body: string; s
 export const MAX_CHAPTER = 1_000_000;
 /** Largest figure file the panel uploads (bytes), under the server action limit. */
 export const MAX_FIGURE = 4 * 1024 * 1024;
-/** Figure file names the reader can show: plain ASCII, one of these image types. */
-export const FIGURE_NAME = /^[\w.\-]+\.(png|jpe?g|webp|gif|svg)$/i;
+/**
+ * Figure file names the panel uploads: plain ASCII and a raster image. The
+ * reader also shows SVG (figureName in book-text.ts), but an SVG can carry
+ * script if its link is ever opened on its own, so the panel does not take one.
+ */
+export const FIGURE_NAME = /^[\w.\-]+\.(png|jpe?g|webp|gif)$/i;
 
 const CONTENT_TYPES: Record<string, string> = {
   png: "image/png",
@@ -26,7 +30,6 @@ const CONTENT_TYPES: Record<string, string> = {
   jpeg: "image/jpeg",
   webp: "image/webp",
   gif: "image/gif",
-  svg: "image/svg+xml",
 };
 
 export function figureContentType(name: string) {

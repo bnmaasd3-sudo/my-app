@@ -42,17 +42,15 @@ function parseFile({ name, text }, source = name) {
 function splitAtHeadings({ name, text }) {
   const normalized = text.replace(/\r\n?/g, "\n");
   const level = (normalized.match(/^#\s/gm) ?? []).length >= 2 ? "#" : "##";
-  const heading = new RegExp(`^${level}\\s`);
+  const startsChapter = new RegExp(`^${level}\\s`);
   const parts = normalized.split(new RegExp(`^(?=${level}\\s)`, "m")).filter((part) => part.trim() !== "");
   // Text before the first heading (the support line) opens the first chapter.
-  if (parts.length > 1 && !heading.test(parts[0])) {
+  if (parts.length > 1 && !startsChapter.test(parts[0])) {
+    let preamble = parts.shift();
     // Split at "## ", a "# " line before the first chapter is the book's own title.
-    const preamble = parts
-      .shift()
-      .replace(level === "##" ? /^#\s.*$/m : /$^/, "")
-      .trim();
-    const [heading, ...rest] = parts[0].split("\n");
-    parts[0] = [heading, preamble, "", ...rest].join("\n");
+    if (level === "##") preamble = preamble.replace(/^#\s.*$/m, "");
+    const [headingLine, ...rest] = parts[0].split("\n");
+    parts[0] = [headingLine, preamble.trim(), "", ...rest].join("\n");
   }
   return parts.map((part, index) => parseFile({ name, text: part }, `${name} § ${index + 1}`));
 }
