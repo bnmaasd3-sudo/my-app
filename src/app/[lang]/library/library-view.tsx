@@ -4,6 +4,7 @@ import { dir, type Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
+import { InstallHint } from "./install-hint";
 
 export type BookKind = "encyclopedia" | "novel" | "appendix";
 
@@ -44,6 +45,7 @@ export function LibraryFrame({ lang, dict, children }: { lang: Locale; dict: Dic
       <main className="flex flex-1 flex-col gap-8 pt-8 pb-14">
         <h1 className="font-heading text-2xl font-bold">{dict.library.title}</h1>
         {children}
+        <InstallHint labels={dict.library.install} />
       </main>
       <SiteFooter lang={lang} dict={dict} path="/library" />
     </div>
