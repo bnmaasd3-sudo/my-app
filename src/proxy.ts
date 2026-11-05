@@ -6,8 +6,8 @@ import { DEVICE_COOKIE, deviceCookieOptions } from "@/lib/device";
 import { readSupabaseEnv } from "@/lib/supabase/env";
 
 const LOCALE = `(${locales.join("|")})`;
-const SESSION_ROUTES = new RegExp(`^/${LOCALE}/(login|library|read|admin|test)(/|$)`);
-const PROTECTED_ROUTES = new RegExp(`^/${LOCALE}/(library|read|admin|test)(/|$)`);
+const SESSION_ROUTES = new RegExp(`^/${LOCALE}/(login|library|read|admin|test|type)(/|$)`);
+const PROTECTED_ROUTES = new RegExp(`^/${LOCALE}/(library|read|admin|test|type)(/|$)`);
 const LOGIN_ROUTE = new RegExp(`^/${LOCALE}/login/?$`);
 const VISUAL_FIXTURES = new RegExp(`^/${LOCALE}/visual-fixtures(/|$)`);
 

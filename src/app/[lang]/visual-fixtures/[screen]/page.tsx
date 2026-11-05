@@ -11,6 +11,7 @@ import { ContentsFrame, ContentsView } from "../../read/[book]/contents-view";
 import { ChapterView } from "../../read/chapter-view";
 import { TestEngineHost } from "../../test/test-engine-host";
 import { TestFrame } from "../../test/test-view";
+import { TypeView } from "../../type/type-view";
 import { books, chapters, contents, figures, opened } from "../fixtures";
 
 /**
@@ -68,6 +69,15 @@ async function Screen({
           chapters={chapters}
           figures={figures}
           prefs={{ layout: isLayout(layout) ? layout : "auto" }}
+        />
+      );
+    case "type":
+      return (
+        <TypeView
+          code="INFJ-T-H"
+          books={books.filter((book) => book.type_code === "INFJ-T-H")}
+          lang={lang}
+          dict={dict}
         />
       );
     case "test":
